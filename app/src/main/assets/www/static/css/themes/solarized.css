@@ -1,0 +1,67 @@
+/* static/css/themes/solarized.css */
+:root {
+    /* Solarized Light */
+    --md-sys-color-primary: #268bd2; /* Blue */
+    --md-sys-color-on-primary: #ffffff;
+    --md-sys-color-primary-container: #cee6f5;
+    --md-sys-color-on-primary-container: #002138;
+    --md-sys-color-secondary: #2aa198; /* Cyan */
+    --md-sys-color-on-secondary: #ffffff;
+    --md-sys-color-secondary-container: #d0ecea;
+    --md-sys-color-on-secondary-container: #002b28;
+    --md-sys-color-tertiary: #859900; /* Green */
+    --md-sys-color-tertiary-container: #e3ead1;
+
+    --md-sys-color-error: #dc322f;
+    --md-sys-color-background: #fdf6e3; /* Base3 */
+    --md-sys-color-on-background: #657b83; /* Base00 */
+    --md-sys-color-surface: #fdf6e3;
+    --md-sys-color-on-surface: #657b83;
+    --md-sys-color-surface-variant: #eee8d5; /* Base2 */
+    --md-sys-color-on-surface-variant: #586e75; /* Base01 */
+    --md-sys-color-outline: #93a1a1; /* Base1 */
+    
+    --md-sys-color-surface-container-low: #ffffff;
+    --md-sys-color-surface-container: #eee8d5;
+    --md-sys-color-surface-container-high: #e8dfc6;
+    --md-sys-color-map: #eee8d5;
+
+    /* Complementary */
+    --md-sys-color-primary-comp-green: #859900;
+    --md-sys-color-primary-comp-blue: #268bd2;
+    --md-sys-color-primary-comp-yellow: #b58900;
+    --md-sys-color-primary-comp-amber: #cb4b16;
+    --md-sys-color-primary-comp-slate: #6c71c4;
+    --md-sys-color-primary-comp-orange: #cb4b16;
+    --md-sys-color-primary-comp-pink: #d33682;
+    --md-sys-color-primary-comp-red: #dc322f;
+    --md-sys-color-primary-comp-purple: #6c71c4;
+}
+
+[data-theme="dark"] {
+    /* Solarized Dark */
+    --md-sys-color-primary: #2aa198; /* Cyan */
+    --md-sys-color-on-primary: #002b28;
+    --md-sys-color-primary-container: #004c47;
+    --md-sys-color-on-primary-container: #d0ecea;
+    --md-sys-color-secondary: #268bd2; /* Blue */
+    --md-sys-color-on-secondary: #002138;
+    --md-sys-color-secondary-container: #0e3d62;
+    --md-sys-color-on-secondary-container: #cee6f5;
+    --md-sys-color-tertiary: #859900; /* Green */
+    --md-sys-color-tertiary-container: #2f3800;
+
+    --md-sys-color-error: #dc322f;
+    --md-sys-color-background: #002b36; /* Base03 */
+    --md-sys-color-on-background: #839496; /* Base0 */
+    --md-sys-color-surface: #002b36;
+    --md-sys-color-on-surface: #839496;
+    --md-sys-color-surface-variant: #073642; /* Base02 */
+    --md-sys-color-on-surface-variant: #93a1a1; /* Base1 */
+    --md-sys-color-outline: #586e75; /* Base01 */
+    
+    --md-sys-color-surface-container-low: #00212b;
+    --md-sys-color-surface-container: #073642;
+    --md-sys-color-surface-container-high: #0e404d;
+    --md-sys-color-map: #00212b;
+}

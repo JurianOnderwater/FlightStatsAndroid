@@ -1,0 +1,462 @@
+/* static/css/style.css */
+
+:root {
+    /* --- Material 3 Typography Theme --- */
+    --md-sys-typescale-body-large-font: 'Roboto Flex';
+    --md-sys-typescale-body-medium-font: 'Roboto Flex';
+    --md-sys-typescale-body-small-font: 'Roboto Flex';
+    --md-sys-typescale-label-large-font: 'Roboto Flex';
+    --md-sys-typescale-label-medium-font: 'Roboto Flex';
+    --md-sys-typescale-label-small-font: 'Roboto Flex';
+    --md-sys-typescale-title-large-font: 'Roboto Flex';
+    --md-sys-typescale-title-medium-font: 'Roboto Flex';
+    --md-sys-typescale-title-small-font: 'Roboto Flex';
+    --md-sys-typescale-headline-large-font: 'Roboto Flex';
+    --md-sys-typescale-headline-medium-font: 'Roboto Flex';
+    --md-sys-typescale-headline-small-font: 'Roboto Flex';
+    
+    --md-sys-typescale-display-large-font: 'Roboto Serif';
+    --md-sys-typescale-display-medium-font: 'Roboto Serif';
+    --md-sys-typescale-display-small-font: 'Roboto Serif';
+
+    /* --- Shape --- */
+    --md-circular-progress-size: 48px;
+}
+
+body {
+    font-family: 'Roboto Flex', sans-serif;
+    background-color: var(--md-sys-color-background);
+    color: var(--md-sys-color-on-background);
+    margin: 0;
+}
+
+main {
+    padding: 16px;
+}
+
+md-top-app-bar {
+    --md-sys-color-primary: var(--md-sys-color-surface);
+    --md-sys-color-on-primary: var(--md-sys-color-on-surface);
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+/* --- Title Card --- */
+
+.title-card {
+    padding: 24px 16px 16px 16px;
+    text-align: left;
+}
+
+.title-card h1 {
+    font-family: 'Roboto Serif', serif;
+    font-size: 40px;
+    line-height: 48px;
+    letter-spacing: -0.25px;
+    margin: 0;
+    color: var(--md-sys-color-primary);
+}
+
+/* --- Map view --- */
+.map-container {
+    position: relative;
+    width: 100%;
+    height: 60vh;
+    border-radius: 16px;
+    overflow: hidden;
+}
+#map, #cesium-container {
+    width: 100%;
+    height: 100%;
+}
+
+/* Legend */
+.legend {
+    line-height: 18px;
+    color: var(--md-sys-color-on-surface);
+    background: var(--md-sys-color-surface-container-low);
+    padding: 6px 12px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+.legend h4 { margin: 0 0 5px; }
+.legend i {
+    width: 18px;
+    height: 18px;
+    float: left;
+    margin-right: 8px;
+    border-radius: 4px;
+}
+
+/* Airport labels */
+.airport-label {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    color: black;
+    opacity: 0.8;
+    font-size: 10px;
+    font-weight: bold;
+    text-shadow: -1px -1px 0 #FFF, 1px -1px 0 #FFF, -1px 1px 0 #FFF, 1px 1px 0 #FFF;
+}
+
+/* Position the view switcher */
+.view-switcher {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 1001;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: var(--md-sys-color-surface-container-high);
+    padding: 4px 12px;
+    border-radius: 100px;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+/* Map loading indicator */
+.loader-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(251, 253, 247, 0.7);
+    z-index: 1500;
+    border-radius: 16px;
+}
+
+/* --- Chips --- */
+.chip-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px 0;
+}
+
+/* --- Hero Stats --- */
+.hero-stats {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    padding: 24px 0;
+    gap: 20px;
+}
+
+.hero-stat-item {
+    text-align: center;
+}
+
+.hero-stat-number {
+    font-family: 'Roboto Serif', serif;
+    font-size: 44px;
+    font-weight: 1000;
+    line-height: 44px;
+    color: var(--md-sys-color-primary);
+}
+
+.hero-stat-label {
+    margin: 0;
+    font-size: 14px;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+/* --- Stats Cards --- */
+.stats-list {
+    padding-left: 20px;
+    margin-top: 8px;
+    line-height: 1.6;
+}
+.stats-card {
+    background-color: var(--md-sys-color-surface-container-low);
+    padding: 16px;
+    border-radius: 12px;
+    margin-top: 16px;
+}
+.stats-card h2 { margin-top: 0; }
+
+/* MOBILE FIRST: Single column by default */
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-top: 16px;
+}
+
+/* Advanced stats defaults (Mobile) */
+.sunburst-card #sunburst-chart {
+    min-height: 350px;
+    width: 100%;
+}
+.milestones-container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+.chart-container {
+    width: 100%;
+    min-width: 250px;
+    border-radius: 8px;
+    padding: 16px;
+    background-color: var(--md-sys-color-surface-container-high);
+    box-sizing: border-box;
+}
+
+/* Records card defaults (Mobile) */
+.record-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+}
+
+.record-item-container {
+    background-color: var(--md-sys-color-surface-container-high);
+    border-radius: 12px;
+    padding: 16px;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.record-item h3 {
+    margin: 0 0 8px 0;
+    font-weight: 500;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+.record-item p {
+    margin: 4px 0;
+    font-size: 16px;
+    word-break: break-word;
+}
+
+.record-distance {
+    font-weight: 500;
+    color: var(--md-sys-color-primary);
+}
+
+/* Compass defaults (Mobile) */
+.hometown-display-container {
+    display: flex;
+    flex-direction: column;
+}
+.hometown-list {
+    padding-bottom: 16px;
+}
+.hometown-list ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+.hometown-list li {
+    margin-bottom: 12px;
+}
+.hometown-map {
+    height: 300px;
+    width: 100%;
+    border-radius: 12px;
+}
+
+/* --- WEB LAYOUT (Desktop) --- */
+@media (min-width: 801px) {
+    .title-card h1 {
+        font-size: 57px;
+        line-height: 64px;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    }
+
+    .full-width-card {
+        grid-column: span 2;
+    }
+    .full-width-card-3-col {
+        grid-column: span 3;
+    }
+    .sunburst-card {
+        grid-column: span 2;
+        grid-row: span 2;
+    }
+    .sunburst-card #sunburst-chart {
+        min-height: 500px;
+    }
+
+    .milestones-container {
+        flex-direction: row;
+        align-items: center;
+    }
+    .milestones-container .stats-list {
+        flex: 1;
+    }
+    .chart-container {
+        flex: 2;
+    }
+
+    .record-container {
+        flex-direction: row;
+    }
+    .record-item-container {
+        flex: 1;
+    }
+
+    .hometown-display-container {
+        flex-direction: row;
+        height: 300px;
+    }
+    .hometown-list {
+        flex-basis: 33%;
+        padding-right: 16px;
+        padding-bottom: 0;
+    }
+    .hometown-map {
+        flex-grow: 1;
+    }
+}
+
+/* --- Misc & Animations --- */
+@keyframes jiggle {
+    0% { transform: rotate(-0.5deg); }
+    50% { transform: rotate(0.5deg); }
+    100% { transform: rotate(-0.5deg); }
+}
+
+#edit-order-fab {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1000;
+}
+
+.stats-grid.edit-mode .stats-card {
+    outline: 3px solid var(--md-sys-color-primary);
+    cursor: grab;
+    user-select: none;
+    animation: jiggle 0.3s infinite;
+}
+
+#country-map {
+    min-height: 300px;
+    width: 100%;
+    border-radius: 12px;
+    margin-top: 16px;
+    background-color: var(--md-sys-color-map);
+}
+
+/* --- Add Flight Page --- */
+.form-card {
+    max-width: 500px;
+    margin: 24px auto;
+    padding: 24px;
+    background: var(--md-sys-color-surface-container-low);
+    border-radius: 16px;
+}
+.add-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.input-row {
+    display: flex;
+    gap: 16px;
+}
+.input-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.styled-input {
+    padding: 16px;
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: 4px;
+    font-family: 'Roboto Flex', sans-serif;
+    font-size: 16px;
+    background-color: transparent;
+    color: var(--md-sys-color-on-surface);
+}
+.styled-input:focus {
+    outline: 2px solid var(--md-sys-color-primary);
+    border-color: var(--md-sys-color-primary);
+}
+
+/* --- Navigation & Footer --- */
+main {
+    padding-bottom: 80px;
+}
+
+footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 12px 16px;
+    background: transparent;
+    z-index: 2000;
+    pointer-events: none;
+}
+
+#add-flight-fab {
+    position: absolute;
+    left: 16px;
+    bottom: 12px;
+    pointer-events: auto;
+}
+
+.segmented-nav {
+    display: flex;
+    justify-content: center;
+    background-color: var(--md-sys-color-surface-container);
+    border-radius: 100px;
+    padding: 4px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    pointer-events: auto;
+}
+
+.nav-segment {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 24px;
+    border-radius: 100px;
+    text-decoration: none;
+    color: var(--md-sys-color-on-surface-variant);
+    font-weight: 500;
+}
+.nav-segment.active {
+    background-color: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+}
+
+/* Material Web Components Overrides */
+md-fab, md-filled-button, md-outlined-button, md-text-button {
+    --md-sys-typescale-label-large-font: 'Roboto Flex';
+}
+md-outlined-text-field {
+    --md-outlined-field-label-text-font: 'Roboto Flex';
+    --md-outlined-field-input-text-font: 'Roboto Flex';
+}
+
+.theme-container {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 2000;
+}
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    .full-width-card, .full-width-card-3-col, .sunburst-card {
+        grid-column: span 1 !important;
+        grid-row: auto !important;
+    }
+}

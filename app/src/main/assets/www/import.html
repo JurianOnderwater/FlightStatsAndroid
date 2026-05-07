@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:wght@400;500;700&family=Roboto+Serif:wght@400;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined">
+    
+    <link rel="stylesheet" href="static/css/base.css">
+    
+    <link rel="stylesheet" id="theme-link" href="static/css/themes/green.css">
+
+    <link rel="manifest" href="static/manifest.json">
+    <link rel="icon" href="static/favicon.svg">
+    <title>Import Flights</title>
+
+    <style>
+        /* Container to position the button and menu together */
+        .theme-container {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 2000;
+        }
+        /* Hide checkmarks on non-active themes */
+        md-menu-item:not(.active) .theme-check {
+            visibility: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        
+        <div class="theme-container">
+            <md-icon-button id="theme-menu-anchor">
+                <span class="material-symbols-outlined">palette</span>
+            </md-icon-button>
+            
+            <md-menu id="theme-menu" anchor="theme-menu-anchor">
+                <md-menu-item keep-open>
+                    <div slot="headline">Dark Mode</div>
+                    <md-switch slot="end" id="dark-mode-switch"></md-switch>
+                </md-menu-item>
+                
+                <md-divider></md-divider>
+                <md-menu-item class="theme-item" data-value="green">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Forest Green</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="blue">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Slate Blue</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="orange">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Deep Orange</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="purple">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Royal Purple</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="dracula">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Dracula</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="nord">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Nord</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="chaos">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Chaos Theory</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="botanical">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Botanical</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="catppuccin">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Catppuccin</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="solarized">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Solarized</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="gruvbox">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Gruvbox</div>
+                </md-menu-item>
+            </md-menu>
+            
+        </div>
+
+        <main>
+            <div class="title-card"><h1>FlightStats</h1></div>
+            <div class="form-card">
+    <h1>Import Flights from CSV 📤</h1>
+    <p>Upload a CSV file with columns: <code>origin</code>, <code>destination</code>, and <code>date</code>.</p>
+    <form class="add-form" id="import-form">
+        <input type="file" name="file" id="file-input" accept=".csv" required hidden>
+        <md-outlined-button type="button" id="select-file-btn">Choose File</md-outlined-button>
+        <span id="file-name-display">No file chosen</span>
+        <div class="form-actions">
+            <md-filled-button type="submit" id="submit-btn">Upload and Import</md-filled-button>
+            <md-circular-progress indeterminate id="import-loader" style="display: none;"></md-circular-progress>
+        </div>
+    </form>
+</div>
+        </main>
+        <footer>
+            <md-fab variant="tertiary" size="small" aria-label="Add Flight" id="add-flight-fab" data-url="add_flight.html">
+                <span slot="icon" class="material-symbols-outlined">add</span>
+            </md-fab>
+            <div class="segmented-nav">
+                <a href="index.html" class="nav-segment ">
+                    <span class="material-symbols-outlined">map</span> Map
+                </a>
+                <a href="flights.html" class="nav-segment ">
+                    <span class="material-symbols-outlined">list_alt</span> List
+                </a>
+                <a href="stats.html" class="nav-segment ">
+                    <span class="material-symbols-outlined">query_stats</span> Stats
+                </a>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/idb@7/build/umd.js"></script>
+    <script src="static/js/database.js"></script>
+    <script type="module" src="https://esm.run/@material/web/all.js"></script>
+    <script src="static/js/app.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const themeBtn = document.getElementById('theme-menu-anchor');
+            const themeMenu = document.getElementById('theme-menu');
+            const darkModeSwitch = document.getElementById('dark-mode-switch');
+            const themeItems = document.querySelectorAll('.theme-item');
+            const themeLink = document.getElementById('theme-link');
+
+            // Notify charts when theme changes
+            function notifyThemeChange() {
+                setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('themeChanged'));
+                }, 50);
+            }
+
+            // Load saved preferences
+            const savedTheme = localStorage.getItem('appTheme') || 'green';
+            const savedDarkMode = localStorage.getItem('appDarkMode') === 'true';
+
+            // Apply initial settings
+            applyTheme(savedTheme);
+            if (savedDarkMode) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                darkModeSwitch.selected = true;
+            }
+
+            // Update UI to show active theme
+            updateActiveItem(savedTheme);
+
+            // Toggle Menu
+            themeBtn.addEventListener('click', () => {
+                themeMenu.open = !themeMenu.open;
+            });
+
+            // Handle Dark Mode
+            darkModeSwitch.addEventListener('change', () => {
+                const isDark = darkModeSwitch.selected;
+                if (isDark) {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                } else {
+                    document.documentElement.removeAttribute('data-theme');
+                }
+                localStorage.setItem('appDarkMode', isDark);
+                notifyThemeChange();
+            });
+
+            // Handle Color Themes
+            themeItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    const theme = item.dataset.value;
+                    applyTheme(theme);
+                    updateActiveItem(theme);
+                    localStorage.setItem('appTheme', theme);
+                    // Close menu on selection
+                    themeMenu.open = false; 
+                });
+            });
+
+            function updateActiveItem(activeTheme) {
+                themeItems.forEach(item => {
+                    if (item.dataset.value === activeTheme) {
+                        item.classList.add('active');
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+            }
+
+            function applyTheme(themeName) {
+                themeLink.href = `/static/css/themes/${themeName}.css`;
+                themeLink.onload = notifyThemeChange;
+            }
+        });
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+<script>
+    const fileInput = document.getElementById('file-input');
+    const selectFileBtn = document.getElementById('select-file-btn');
+    const fileNameDisplay = document.getElementById('file-name-display');
+    const importForm = document.getElementById('import-form');
+    const submitBtn = document.getElementById('submit-btn');
+    const loader = document.getElementById('import-loader');
+
+    selectFileBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+        fileNameDisplay.textContent = fileInput.files.length > 0 ? fileInput.files[0].name : 'No file chosen';
+    });
+
+    importForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const file = fileInput.files[0];
+        if (!file) {
+            alert('Please select a file to import.');
+            return;
+        }
+
+        // Show loading state
+        submitBtn.disabled = true;
+        loader.style.display = 'flex';
+        submitBtn.textContent = 'Importing...';
+
+        // Use Papa Parse to read the file
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: async (results) => {
+                const flightsToImport = results.data.map(row => ({
+                    origin: row.origin ? row.origin.toUpperCase() : '',
+                    destination: row.destination ? row.destination.toUpperCase() : '',
+                    date: row.date
+                }));
+                
+                await importFlights(flightsToImport);
+                alert(`${flightsToImport.length} flights imported successfully!`);
+                window.location.href = "flights.html";
+            },
+            error: (error) => {
+                console.error("CSV parsing error:", error);
+                alert("An error occurred while parsing the CSV file.");
+                // Reset button state
+                submitBtn.disabled = false;
+                loader.style.display = 'none';
+                submitBtn.textContent = 'Upload and Import';
+            }
+        });
+    });
+</script>
+</body>
+</html>

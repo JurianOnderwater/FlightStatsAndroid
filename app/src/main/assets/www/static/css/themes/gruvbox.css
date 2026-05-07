@@ -1,0 +1,66 @@
+/* static/css/themes/gruvbox.css */
+:root {
+    /* Gruvbox Light */
+    --md-sys-color-primary: #cc241d; /* Red */
+    --md-sys-color-on-primary: #ffffff;
+    --md-sys-color-primary-container: #f9ceca;
+    --md-sys-color-on-primary-container: #420503;
+    --md-sys-color-secondary: #98971a; /* Green */
+    --md-sys-color-on-secondary: #ffffff;
+    --md-sys-color-secondary-container: #e7e7cc;
+    --md-sys-color-on-secondary-container: #292904;
+    --md-sys-color-tertiary: #d79921; /* Yellow */
+    --md-sys-color-tertiary-container: #f5e8cc;
+
+    --md-sys-color-error: #cc241d;
+    --md-sys-color-background: #fbf1c7; /* Light BG */
+    --md-sys-color-on-background: #3c3836;
+    --md-sys-color-surface: #fbf1c7;
+    --md-sys-color-on-surface: #3c3836;
+    --md-sys-color-surface-variant: #ebdbb2;
+    --md-sys-color-on-surface-variant: #504945;
+    --md-sys-color-outline: #7c6f64;
+    
+    --md-sys-color-surface-container-low: #ffffff;
+    --md-sys-color-surface-container: #f2e5bc;
+    --md-sys-color-surface-container-high: #ebdbb2;
+    --md-sys-color-map: #ebdbb2;
+
+    /* Complementary */
+    --md-sys-color-primary-comp-green: #98971a;
+    --md-sys-color-primary-comp-blue: #458588;
+    --md-sys-color-primary-comp-yellow: #d79921;
+    --md-sys-color-primary-comp-amber: #d65d0e;
+    --md-sys-color-primary-comp-slate: #3c3836;
+    --md-sys-color-primary-comp-orange: #fe8019;
+    --md-sys-color-primary-comp-pink: #b16286;
+    --md-sys-color-primary-comp-red: #cc241d;
+    --md-sys-color-primary-comp-purple: #b16286;
+}
+
+[data-theme="dark"] {
+    /* Gruvbox Dark */
+    --md-sys-color-primary: #fb4934; /* Red */
+    --md-sys-color-on-primary: #3c0d09;
+    --md-sys-color-primary-container: #681812;
+    --md-sys-color-on-primary-container: #fb4934;
+    --md-sys-color-secondary: #b8bb26; /* Green */
+    --md-sys-color-on-secondary: #292b04;
+    --md-sys-color-secondary-container: #4a4d0a;
+    --md-sys-color-on-secondary-container: #e7e7cc;
+    --md-sys-color-tertiary: #fabd2f; /* Yellow */
+    --md-sys-color-tertiary-container: #5e4406;
+
+    --md-sys-color-background: #282828; /* Dark BG */
+    --md-sys-color-on-background: #ebdbb2;
+    --md-sys-color-surface: #282828;
+    --md-sys-color-on-surface: #ebdbb2;
+    --md-sys-color-surface-variant: #3c3836;
+    --md-sys-color-on-surface-variant: #a89984;
+    --md-sys-color-outline: #7c6f64;
+    
+    --md-sys-color-surface-container-low: #1d2021;
+    --md-sys-color-surface-container: #32302f;
+    --md-sys-color-surface-container-high: #3c3836;
+    --md-sys-color-map: #32302f;
+}

@@ -1,0 +1,62 @@
+/* static/css/themes/chaos.css */
+:root {
+    --md-sys-color-primary: #7c0a6b; /* Magenta */
+    --md-sys-color-on-primary: #ffffff;
+    --md-sys-color-primary-container: #ffd7f1;
+    --md-sys-color-on-primary-container: #300028;
+    --md-sys-color-secondary: #008751; /* Green */
+    --md-sys-color-on-secondary: #ffffff;
+    --md-sys-color-secondary-container: #8cf8c3;
+    --md-sys-color-on-secondary-container: #002111;
+    --md-sys-color-tertiary: #5218fa; /* Blue/Purple */
+    --md-sys-color-tertiary-container: #e3dfff;
+
+    --md-sys-color-background: #fffbff;
+    --md-sys-color-on-background: #1e1a1d;
+    --md-sys-color-surface: #fffbff;
+    --md-sys-color-on-surface: #1e1a1d;
+    --md-sys-color-surface-variant: #eddee8;
+    --md-sys-color-on-surface-variant: #4d444b;
+    --md-sys-color-outline: #7f747c;
+    --md-sys-color-surface-container-low: #f8f2f6;
+    --md-sys-color-surface-container: #f2ecf0;
+    --md-sys-color-surface-container-high: #ede6eb;
+    --md-sys-color-map: #e5e0e4;
+
+    /* Complementary */
+    --md-sys-color-primary-comp-green: #00ff00;
+    --md-sys-color-primary-comp-blue: #5218fa;
+    --md-sys-color-primary-comp-yellow: #f5e65b;
+    --md-sys-color-primary-comp-amber: #e6a23c;
+    --md-sys-color-primary-comp-slate: #15141b;
+    --md-sys-color-primary-comp-orange: #fd5e53;
+    --md-sys-color-primary-comp-pink: #7c0a6b;
+    --md-sys-color-primary-comp-red: #ff003c;
+    --md-sys-color-primary-comp-purple: #5e17eb;
+}
+
+[data-theme="dark"] {
+    --md-sys-color-primary: #fface9;
+    --md-sys-color-on-primary: #5d004d;
+    --md-sys-color-primary-container: #7c0a6b;
+    --md-sys-color-on-primary-container: #ffd7f1;
+    --md-sys-color-secondary: #70dba8;
+    --md-sys-color-on-secondary: #003820;
+    --md-sys-color-secondary-container: #005132;
+    --md-sys-color-on-secondary-container: #8cf8c3;
+    --md-sys-color-tertiary: #c6c0ff;
+    --md-sys-color-tertiary-container: #3a00b6;
+
+    --md-sys-color-background: #15141b; /* Chaos Base Dark */
+    --md-sys-color-on-background: #e9e0e4;
+    --md-sys-color-surface: #15141b;
+    --md-sys-color-on-surface: #e9e0e4;
+    --md-sys-color-surface-variant: #4d444b;
+    --md-sys-color-on-surface-variant: #d0c2cc;
+    --md-sys-color-outline: #998d96;
+    
+    --md-sys-color-surface-container-low: #1e1c24;
+    --md-sys-color-surface-container: #23212b;
+    --md-sys-color-surface-container-high: #2e2b36;
+    --md-sys-color-map: #2e2b36;
+}

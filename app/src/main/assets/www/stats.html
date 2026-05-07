@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:wght@400;500;700&family=Roboto+Serif:wght@400;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined">
+    
+    <link rel="stylesheet" href="static/css/base.css">
+    
+    <link rel="stylesheet" id="theme-link" href="static/css/themes/green.css">
+
+    <link rel="manifest" href="static/manifest.json">
+    <link rel="icon" href="static/favicon.svg">
+    <title>Statistics</title>
+
+    <style>
+        /* Container to position the button and menu together */
+        .theme-container {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 2000;
+        }
+        /* Hide checkmarks on non-active themes */
+        md-menu-item:not(.active) .theme-check {
+            visibility: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        
+        <div class="theme-container">
+            <md-icon-button id="theme-menu-anchor">
+                <span class="material-symbols-outlined">palette</span>
+            </md-icon-button>
+            
+            <md-menu id="theme-menu" anchor="theme-menu-anchor">
+                <md-menu-item keep-open>
+                    <div slot="headline">Dark Mode</div>
+                    <md-switch slot="end" id="dark-mode-switch"></md-switch>
+                </md-menu-item>
+                
+                <md-divider></md-divider>
+                <md-menu-item class="theme-item" data-value="green">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Forest Green</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="blue">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Slate Blue</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="orange">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Deep Orange</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="purple">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Royal Purple</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="dracula">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Dracula</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="nord">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Nord</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="chaos">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Chaos Theory</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="botanical">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Botanical</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="catppuccin">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Catppuccin</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="solarized">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Solarized</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="gruvbox">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Gruvbox</div>
+                </md-menu-item>
+            </md-menu>
+            
+        </div>
+
+        <main>
+            <div class="title-card"><h1>FlightStats</h1></div>
+            <div id="loader-container" class="loader-container">
+        <md-circular-progress indeterminate></md-circular-progress>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stats-card" id="distance-card">
+            <h2>Distance ↔️</h2>
+            <p><strong>Total Kilometres:</strong> <span id="total-km">0</span> km</p>
+            <p><strong>Total Miles:</strong> <span id="total-miles">0</span> mi</p>
+            <p><strong>Earth Circumnavigations:</strong> <span id="earth-circumnavigations">0</span></p>
+            <p><strong>Journey to the Moon:</strong> <span id="percent-to-moon">0</span>%</p>
+        </div>
+        <div class="stats-card" id="time-card">
+            <h2>Time (Estimated) ⏱️</h2>
+            <p><strong>Total Hours Flown:</strong> <span id="total-hours">0</span></p>
+            <p><strong>Total Days Flown:</strong> <span id="total-days">0</span></p>
+            <p><strong>Total Weeks Flown:</strong> <span id="total-weeks">0</span></p>
+            <p><strong>Total Months Flown:</strong> <span id="total-months">0</span></p>
+        </div>
+        <div class="stats-card sunburst-card" id="distribution-card">
+            <h2>Travel Distribution ☀️</h2>
+            <div id="sunburst-chart"></div>
+        </div>
+        <div class="stats-card" id="top-airports-card">
+            <h2>Top 10 Airports 🛬</h2>
+            <ol id="top-airports-list" class="stats-list"></ol>
+        </div>
+        <div class="stats-card" id="top-routes-card">
+            <h2>Top 10 Routes 🗺️</h2>
+            <ol id="top-routes-list" class="stats-list"></ol>
+        </div>
+        <div class="stats-card full-width-card" id="milestones-card">
+            <h2>Distance Milestones 🏁</h2>
+            <div class="milestones-container">
+                <ul id="milestones-list" class="stats-list"></ul>
+                <div class="chart-container">
+                    <canvas id="distance-chart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="stats-card full-width-card" id="countries-card">
+            <h2>Visited Countries 🌍</h2>
+            <div id="country-map"></div>
+        </div>
+        <div class="stats-card" id="yearly-card">
+            <h2>Flights by Year 🎆</h2>
+            <div class="chart-container">
+                <canvas id="yearly-chart"></canvas>
+            </div>
+        </div>
+        <div class="stats-card" id="monthly-card">
+            <h2>Flights by Month 🗓️</h2>
+            <div class="chart-container">
+                <canvas id="seasonality-chart"></canvas>
+            </div>
+        </div>
+        <div class="stats-card" id="weekday-card">
+            <h2>Flights by Weekday 📊</h2>
+            <div class="chart-container">
+                <canvas id="weekday-chart"></canvas>
+            </div>
+        </div>
+        <div class="stats-card" id="records-card">
+            <h2>Flight Records 🥇</h2>
+            <div class="record-container">
+                <div class="record-item-container">
+                    <div class="record-item">
+                        <h3>Shortest Flight</h3>
+                        <p id="shortest-flight-route">N/A</p>
+                        <p id="shortest-flight-dist" class="record-distance">0 km</p>
+                    </div>
+                </div>
+                <div class="record-item-container">
+                    <div class="record-item">
+                        <h3>Longest Flight</h3>
+                        <p id="longest-flight-route">N/A</p>
+                        <p id="longest-flight-dist" class="record-distance">0 km</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="stats-card full-width-card-3-col" id="compass-card">
+            <h2>Compass 🧭</h2>
+            <div id="hometown-card-content">
+                <div id="hometown-setup" class="hometown-setup-container">
+                    <p>Set a hometown to see your most northern, southern, eastern, and western destinations.</p>
+                    <md-filled-button id="set-hometown-btn">Set Hometown</md-filled-button>
+                </div>
+
+                <div id="hometown-display" class="hometown-display-container" style="display: none;">
+                    <div class="hometown-list">
+                        <p>Your farthest points from <b id="hometown-iata">HOME</b>:</p>
+                        <ul>
+                            <li id="northernmost-li"><b>North:</b> <span>Calculating...</span></li>
+                            <li id="easternmost-li"><b>East:</b> <span>Calculating...</span></li>
+                            <li id="southernmost-li"><b>South:</b> <span>Calculating...</span></li>
+                            <li id="westernmost-li"><b>West:</b> <span>Calculating...</span></li>
+                        </ul>
+                        <md-text-button id="change-hometown-btn">Change Hometown</md-text-button>
+                    </div>
+                    <div id="hometown-map" class="hometown-map"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <md-dialog id="hometown-dialog">
+        <div slot="headline">Set Your Hometown</div>
+        <form slot="content" id="hometown-form" class="add-form" method="dialog">
+            <p>Enter the 3-letter IATA code for your home airport (e.g., TOS, LHR, JFK).</p>
+            <md-outlined-text-field
+                label="Hometown IATA Code"
+                id="hometown-input"
+                required
+                maxlength="3">
+            </md-outlined-text-field>
+        </form>
+        <div slot="actions">
+            <md-text-button form="hometown-form" value="cancel">Cancel</md-text-button>
+            <md-filled-button form="hometown-form" value="save">Save</md-filled-button>
+        </div>
+    </md-dialog>
+
+    <md-fab id="edit-order-fab" variant="secondary" aria-label="Edit layout">
+        <span slot="icon" class="material-symbols-outlined">edit</span>
+    </md-fab>
+        </main>
+        <footer>
+            <md-fab variant="tertiary" size="small" aria-label="Add Flight" id="add-flight-fab" data-url="add_flight.html">
+                <span slot="icon" class="material-symbols-outlined">add</span>
+            </md-fab>
+            <div class="segmented-nav">
+                <a href="index.html" class="nav-segment ">
+                    <span class="material-symbols-outlined">map</span> Map
+                </a>
+                <a href="flights.html" class="nav-segment ">
+                    <span class="material-symbols-outlined">list_alt</span> List
+                </a>
+                <a href="stats.html" class="nav-segment active">
+                    <span class="material-symbols-outlined">query_stats</span> Stats
+                </a>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/idb@7/build/umd.js"></script>
+    <script src="static/js/database.js"></script>
+    <script type="module" src="https://esm.run/@material/web/all.js"></script>
+    <script src="static/js/app.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const themeBtn = document.getElementById('theme-menu-anchor');
+            const themeMenu = document.getElementById('theme-menu');
+            const darkModeSwitch = document.getElementById('dark-mode-switch');
+            const themeItems = document.querySelectorAll('.theme-item');
+            const themeLink = document.getElementById('theme-link');
+
+            // Notify charts when theme changes
+            function notifyThemeChange() {
+                setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('themeChanged'));
+                }, 50);
+            }
+
+            // Load saved preferences
+            const savedTheme = localStorage.getItem('appTheme') || 'green';
+            const savedDarkMode = localStorage.getItem('appDarkMode') === 'true';
+
+            // Apply initial settings
+            applyTheme(savedTheme);
+            if (savedDarkMode) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                darkModeSwitch.selected = true;
+            }
+
+            // Update UI to show active theme
+            updateActiveItem(savedTheme);
+
+            // Toggle Menu
+            themeBtn.addEventListener('click', () => {
+                themeMenu.open = !themeMenu.open;
+            });
+
+            // Handle Dark Mode
+            darkModeSwitch.addEventListener('change', () => {
+                const isDark = darkModeSwitch.selected;
+                if (isDark) {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                } else {
+                    document.documentElement.removeAttribute('data-theme');
+                }
+                localStorage.setItem('appDarkMode', isDark);
+                notifyThemeChange();
+            });
+
+            // Handle Color Themes
+            themeItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    const theme = item.dataset.value;
+                    applyTheme(theme);
+                    updateActiveItem(theme);
+                    localStorage.setItem('appTheme', theme);
+                    // Close menu on selection
+                    themeMenu.open = false; 
+                });
+            });
+
+            function updateActiveItem(activeTheme) {
+                themeItems.forEach(item => {
+                    if (item.dataset.value === activeTheme) {
+                        item.classList.add('active');
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+            }
+
+            function applyTheme(themeName) {
+                themeLink.href = `/static/css/themes/${themeName}.css`;
+                themeLink.onload = notifyThemeChange;
+            }
+        });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="static/js/utils.js"></script>
+    <script src="static/js/stats.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const loader = document.getElementById('loader-container');
+            if (loader) loader.style.display = 'flex';
+
+            try {
+                const [allFlights, airportCsvText] = await Promise.all([
+                    getAllFlights(),
+                    fetch('static/airports.csv').then(res => res.text())
+                ]);
+
+                Papa.parse(airportCsvText, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: (results) => {
+                        const airportData = new Map();
+                        results.data.forEach(row => {
+                            if (row.iata_code) {
+                                // *** THIS IS THE FIX ***
+                                // Create the complete airport data object, including city and name
+                                airportData.set(row.iata_code, { 
+                                    name: row.name,
+                                    city: row.municipality,
+                                    country: row.iso_country,
+                                    lat: parseFloat(row.latitude_deg),
+                                    lng: parseFloat(row.longitude_deg)
+                                 });
+                            }
+                        });
+                        
+                        // This function will now receive the complete data it needs
+                        calculateAndDisplayStats(allFlights, airportData);
+                    }
+                });
+            } catch (error) {
+                console.error("Failed to load data for stats page:", error);
+            } finally {
+                if (loader) loader.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

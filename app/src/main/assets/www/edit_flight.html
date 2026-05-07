@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:wght@400;500;700&family=Roboto+Serif:wght@400;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined">
+    
+    <link rel="stylesheet" href="static/css/base.css">
+    
+    <link rel="stylesheet" id="theme-link" href="static/css/themes/green.css">
+
+    <link rel="manifest" href="static/manifest.json">
+    <link rel="icon" href="static/favicon.svg">
+    <title>Edit Flight</title>
+
+    <style>
+        /* Container to position the button and menu together */
+        .theme-container {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 2000;
+        }
+        /* Hide checkmarks on non-active themes */
+        md-menu-item:not(.active) .theme-check {
+            visibility: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        
+        <div class="theme-container">
+            <md-icon-button id="theme-menu-anchor">
+                <span class="material-symbols-outlined">palette</span>
+            </md-icon-button>
+            
+            <md-menu id="theme-menu" anchor="theme-menu-anchor">
+                <md-menu-item keep-open>
+                    <div slot="headline">Dark Mode</div>
+                    <md-switch slot="end" id="dark-mode-switch"></md-switch>
+                </md-menu-item>
+                
+                <md-divider></md-divider>
+                <md-menu-item class="theme-item" data-value="green">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Forest Green</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="blue">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Slate Blue</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="orange">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Deep Orange</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="purple">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Royal Purple</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="dracula">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Dracula</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="nord">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Nord</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="chaos">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Chaos Theory</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="botanical">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Botanical</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="catppuccin">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Catppuccin</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="solarized">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Solarized</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="gruvbox">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Gruvbox</div>
+                </md-menu-item>
+            </md-menu>
+            
+        </div>
+
+        <main>
+            <div class="title-card"><h1>FlightStats</h1></div>
+            <div class="form-card">
+    <h1>Edit Flight ✏️</h1>
+    <form class="add-form" id="edit-form">
+        <div class="input-row">
+            <div class="input-group">
+                <label for="origin-input">Origin</label>
+                <input class="styled-input" type="text" id="origin-input" list="airport-list" required>
+            </div>
+            <div class="input-group">
+                <label for="destination-input">Destination</label>
+                <input class="styled-input" type="text" id="destination-input" list="airport-list" required>
+            </div>
+        </div>
+
+        <datalist id="airport-list"></datalist>
+
+        <md-outlined-text-field label="Date" name="date" type="date" required></md-outlined-text-field>
+    </form>
+    <div class="form-actions">
+        <md-icon-button class="delete-btn" id="delete-btn">
+            <span class="material-symbols-outlined">delete</span>
+        </md-icon-button>
+        <div class="save-actions">
+            <a href="flights.html"><md-text-button>Cancel</md-text-button></a>
+            <md-filled-button type="submit" form="edit-form">Save Changes</md-filled-button>
+        </div>
+    </div>
+</div>
+        </main>
+        <footer>
+            <md-fab variant="tertiary" size="small" aria-label="Add Flight" id="add-flight-fab" data-url="add_flight.html">
+                <span slot="icon" class="material-symbols-outlined">add</span>
+            </md-fab>
+            <div class="segmented-nav">
+                <a href="index.html" class="nav-segment ">
+                    <span class="material-symbols-outlined">map</span> Map
+                </a>
+                <a href="flights.html" class="nav-segment ">
+                    <span class="material-symbols-outlined">list_alt</span> List
+                </a>
+                <a href="stats.html" class="nav-segment ">
+                    <span class="material-symbols-outlined">query_stats</span> Stats
+                </a>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/idb@7/build/umd.js"></script>
+    <script src="static/js/database.js"></script>
+    <script type="module" src="https://esm.run/@material/web/all.js"></script>
+    <script src="static/js/app.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const themeBtn = document.getElementById('theme-menu-anchor');
+            const themeMenu = document.getElementById('theme-menu');
+            const darkModeSwitch = document.getElementById('dark-mode-switch');
+            const themeItems = document.querySelectorAll('.theme-item');
+            const themeLink = document.getElementById('theme-link');
+
+            // Notify charts when theme changes
+            function notifyThemeChange() {
+                setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('themeChanged'));
+                }, 50);
+            }
+
+            // Load saved preferences
+            const savedTheme = localStorage.getItem('appTheme') || 'green';
+            const savedDarkMode = localStorage.getItem('appDarkMode') === 'true';
+
+            // Apply initial settings
+            applyTheme(savedTheme);
+            if (savedDarkMode) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                darkModeSwitch.selected = true;
+            }
+
+            // Update UI to show active theme
+            updateActiveItem(savedTheme);
+
+            // Toggle Menu
+            themeBtn.addEventListener('click', () => {
+                themeMenu.open = !themeMenu.open;
+            });
+
+            // Handle Dark Mode
+            darkModeSwitch.addEventListener('change', () => {
+                const isDark = darkModeSwitch.selected;
+                if (isDark) {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                } else {
+                    document.documentElement.removeAttribute('data-theme');
+                }
+                localStorage.setItem('appDarkMode', isDark);
+                notifyThemeChange();
+            });
+
+            // Handle Color Themes
+            themeItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    const theme = item.dataset.value;
+                    applyTheme(theme);
+                    updateActiveItem(theme);
+                    localStorage.setItem('appTheme', theme);
+                    // Close menu on selection
+                    themeMenu.open = false; 
+                });
+            });
+
+            function updateActiveItem(activeTheme) {
+                themeItems.forEach(item => {
+                    if (item.dataset.value === activeTheme) {
+                        item.classList.add('active');
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+            }
+
+            function applyTheme(themeName) {
+                themeLink.href = `/static/css/themes/${themeName}.css`;
+                themeLink.onload = notifyThemeChange;
+            }
+        });
+    </script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const flightId = parseInt(new URLSearchParams(window.location.search).get('id'), 10);
+        const form = document.getElementById('edit-form');
+        const deleteBtn = document.getElementById('delete-btn');
+        const originInput = document.getElementById('origin-input');
+        const destinationInput = document.getElementById('destination-input');
+
+        // --- 1. Populate the datalist with suggestions ---
+        const airportDataString = localStorage.getItem('airportData');
+        if (airportDataString) {
+            const airportData = new Map(JSON.parse(airportDataString));
+            const datalist = document.getElementById('airport-list');
+            
+            for (const [iata, data] of airportData.entries()) {
+                const option = document.createElement('option');
+                option.value = iata;
+                option.textContent = `${data.city || data.name}, ${data.country} (${iata})`;
+                datalist.appendChild(option);
+            }
+        }
+
+        // --- 2. Fetch the current flight and populate the form ---
+        const flight = await getFlight(flightId);
+        if (flight) {
+            originInput.value = flight.origin;
+            destinationInput.value = flight.destination;
+            form.date.value = flight.date;
+        }
+
+        // --- 3. Handle form submission for saving changes ---
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const updatedFlight = {
+                id: flightId,
+                origin: originInput.value.toUpperCase(),
+                destination: destinationInput.value.toUpperCase(),
+                date: form.date.value
+            };
+            await updateFlight(updatedFlight);
+            window.location.href = "flights.html";
+        });
+
+        // --- 4. Handle the delete button click ---
+        deleteBtn.addEventListener('click', async () => {
+            if (confirm('Are you sure you want to delete this flight?')) {
+                await deleteFlight(flightId);
+                window.location.href = "flights.html";
+            }
+        });
+    });
+</script>
+</body>
+</html>

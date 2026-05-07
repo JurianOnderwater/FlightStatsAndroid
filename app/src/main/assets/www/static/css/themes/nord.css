@@ -1,0 +1,64 @@
+/* static/css/themes/nord.css */
+:root {
+    --md-sys-color-primary: #5e81ac; /* Frost Blue */
+    --md-sys-color-on-primary: #ffffff;
+    --md-sys-color-primary-container: #d2e4ff;
+    --md-sys-color-on-primary-container: #001c37;
+    --md-sys-color-secondary: #81a1c1;
+    --md-sys-color-on-secondary: #ffffff;
+    --md-sys-color-secondary-container: #d3e4ff;
+    --md-sys-color-on-secondary-container: #001c38;
+    --md-sys-color-tertiary: #88c0d0; /* Frozen Cyan */
+    --md-sys-color-tertiary-container: #cce8f0;
+
+    --md-sys-color-error: #bf616a; /* Aurora Red */
+    --md-sys-color-background: #eceff4; /* Snow Storm */
+    --md-sys-color-on-background: #2e3440;
+    --md-sys-color-surface: #eceff4;
+    --md-sys-color-on-surface: #2e3440;
+    --md-sys-color-surface-variant: #d8dee9;
+    --md-sys-color-on-surface-variant: #4c566a;
+    --md-sys-color-outline: #9099a9;
+    
+    --md-sys-color-surface-container-low: #f4f6f8;
+    --md-sys-color-surface-container: #e5e9f0;
+    --md-sys-color-surface-container-high: #d8dee9;
+    --md-sys-color-map: #d8dee9;
+
+    /* Complementary */
+    --md-sys-color-primary-comp-green: #a3be8c;
+    --md-sys-color-primary-comp-blue: #5e81ac;
+    --md-sys-color-primary-comp-yellow: #ebcb8b;
+    --md-sys-color-primary-comp-amber: #d08770;
+    --md-sys-color-primary-comp-slate: #3b4252;
+    --md-sys-color-primary-comp-orange: #d08770;
+    --md-sys-color-primary-comp-pink: #b48ead;
+    --md-sys-color-primary-comp-red: #bf616a;
+    --md-sys-color-primary-comp-purple: #b48ead;
+}
+
+[data-theme="dark"] {
+    --md-sys-color-primary: #88c0d0;
+    --md-sys-color-on-primary: #00344d;
+    --md-sys-color-primary-container: #004c6d;
+    --md-sys-color-on-primary-container: #c3e7ff;
+    --md-sys-color-secondary: #81a1c1;
+    --md-sys-color-on-secondary: #003354;
+    --md-sys-color-secondary-container: #264a6d;
+    --md-sys-color-on-secondary-container: #d2e4ff;
+    --md-sys-color-tertiary: #a3be8c; /* Aurora Green */
+    --md-sys-color-tertiary-container: #3a4d2d;
+
+    --md-sys-color-background: #2e3440; /* Polar Night */
+    --md-sys-color-on-background: #eceff4;
+    --md-sys-color-surface: #2e3440;
+    --md-sys-color-on-surface: #eceff4;
+    --md-sys-color-surface-variant: #434c5e;
+    --md-sys-color-on-surface-variant: #d8dee9;
+    --md-sys-color-outline: #808b9e;
+    
+    --md-sys-color-surface-container-low: #3b4252;
+    --md-sys-color-surface-container: #434c5e;
+    --md-sys-color-surface-container-high: #4c566a;
+    --md-sys-color-map: #3b4252;
+}

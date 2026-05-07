@@ -1,0 +1,52 @@
+/* static/css/themes/purple.css */
+:root {
+    --md-sys-color-primary: #563f82; /* Deep Purple */
+    --md-sys-color-on-primary: #ffffff;
+    --md-sys-color-primary-container: #e8ddff;
+    --md-sys-color-on-primary-container: #21005e;
+    --md-sys-color-secondary: #605b71;
+    --md-sys-color-on-secondary: #ffffff;
+    --md-sys-color-secondary-container: #e6def9;
+    --md-sys-color-on-secondary-container: #1d192b;
+    --md-sys-color-tertiary: #7d5260;
+    --md-sys-color-tertiary-container: #ffd8e4;
+
+    --md-sys-color-background: #fffbfe;
+    --md-sys-color-on-background: #1c1b1f;
+    --md-sys-color-surface: #fffbfe;
+    --md-sys-color-on-surface: #1c1b1f;
+    --md-sys-color-surface-container-low: #f8f2fa;
+    --md-sys-color-surface-container: #f2ecf4;
+    --md-sys-color-surface-container-high: #ece6ee;
+
+    --md-sys-color-surface-variant: #e6e0eb;
+    --md-sys-color-on-surface-variant: #48454e;
+    --md-sys-color-outline: #79757f;
+    --md-sys-color-map: #e5e0e8;
+}
+
+[data-theme="dark"] {
+    --md-sys-color-primary: #cfbdfe;
+    --md-sys-color-on-primary: #380093;
+    --md-sys-color-primary-container: #4f378b;
+    --md-sys-color-on-primary-container: #e8ddff;
+    --md-sys-color-secondary: #cac3dc;
+    --md-sys-color-on-secondary: #322e41;
+    --md-sys-color-secondary-container: #484458;
+    --md-sys-color-on-secondary-container: #e6def9;
+    --md-sys-color-tertiary: #efb8c8;
+    --md-sys-color-tertiary-container: #633b48;
+
+    --md-sys-color-background: #1c1b1f;
+    --md-sys-color-on-background: #e6e1e5;
+    --md-sys-color-surface: #141316;
+    --md-sys-color-on-surface: #e6e1e5;
+    --md-sys-color-surface-container-low: #1c1b1f;
+    --md-sys-color-surface-container: #201f23;
+    --md-sys-color-surface-container-high: #2b2930;
+
+    --md-sys-color-surface-variant: #48454e;
+    --md-sys-color-on-surface-variant: #cac4d0;
+    --md-sys-color-outline: #938f99;
+    --md-sys-color-map: #2b2930;
+}

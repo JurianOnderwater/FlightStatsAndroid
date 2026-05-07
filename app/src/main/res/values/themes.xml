@@ -1,0 +1,21 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.FlightStats" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">?attr/colorSurface</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+        <!-- Nav active indicator blends into surface -->
+        <item name="bottomNavigationStyle">@style/Widget.FlightStats.BottomNav</item>
+    </style>
+
+    <style name="Theme.FlightStats" parent="Base.Theme.FlightStats" />
+
+    <!-- BottomNavigation: indicator matches surface so it's invisible -->
+    <style name="Widget.FlightStats.BottomNav" parent="Widget.Material3.BottomNavigationView">
+        <item name="itemActiveIndicatorStyle">@style/Widget.FlightStats.BottomNav.Indicator</item>
+    </style>
+
+    <style name="Widget.FlightStats.BottomNav.Indicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">?attr/colorSurface</item>
+    </style>
+</resources>

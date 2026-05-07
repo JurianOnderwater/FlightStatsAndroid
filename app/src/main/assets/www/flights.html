@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:wght@400;500;700&family=Roboto+Serif:wght@400;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined">
+    
+    <link rel="stylesheet" href="static/css/base.css">
+    
+    <link rel="stylesheet" id="theme-link" href="static/css/themes/green.css">
+
+    <link rel="manifest" href="static/manifest.json">
+    <link rel="icon" href="static/favicon.svg">
+    <title>All Flights</title>
+
+    <style>
+        /* Container to position the button and menu together */
+        .theme-container {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 2000;
+        }
+        /* Hide checkmarks on non-active themes */
+        md-menu-item:not(.active) .theme-check {
+            visibility: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        
+        <div class="theme-container">
+            <md-icon-button id="theme-menu-anchor">
+                <span class="material-symbols-outlined">palette</span>
+            </md-icon-button>
+            
+            <md-menu id="theme-menu" anchor="theme-menu-anchor">
+                <md-menu-item keep-open>
+                    <div slot="headline">Dark Mode</div>
+                    <md-switch slot="end" id="dark-mode-switch"></md-switch>
+                </md-menu-item>
+                
+                <md-divider></md-divider>
+                <md-menu-item class="theme-item" data-value="green">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Forest Green</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="blue">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Slate Blue</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="orange">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Deep Orange</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="purple">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Royal Purple</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="dracula">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Dracula</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="nord">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Nord</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="chaos">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Chaos Theory</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="botanical">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Botanical</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="catppuccin">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Catppuccin</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="solarized">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Solarized</div>
+                </md-menu-item>
+                <md-menu-item class="theme-item" data-value="gruvbox">
+                    <span slot="start" class="material-symbols-outlined theme-check">check</span>
+                    <div slot="headline">Gruvbox</div>
+                </md-menu-item>
+            </md-menu>
+            
+        </div>
+
+        <main>
+            <div class="title-card"><h1>FlightStats</h1></div>
+            <div class="table-card">
+    <div class="table-header">
+        <h1>All Flights 📜</h1>
+        <div class="header-actions">
+            <a href="import.html">
+                <md-filled-tonal-button>Import CSV</md-filled-tonal-button>
+            </a>
+            <md-filled-tonal-button id="export-btn">Export to CSV</md-filled-tonal-button>
+        </div>
+    </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Origin</th>
+                    <th>Destination</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="flights-table-body">
+                <tr id="loading-row">
+                    <td colspan="4" class="loading-cell">
+                        <md-circular-progress indeterminate></md-circular-progress>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="pagination-controls" class="pagination"></div>
+</div>
+        </main>
+        <footer>
+            <md-fab variant="tertiary" size="small" aria-label="Add Flight" id="add-flight-fab" data-url="add_flight.html">
+                <span slot="icon" class="material-symbols-outlined">add</span>
+            </md-fab>
+            <div class="segmented-nav">
+                <a href="index.html" class="nav-segment ">
+                    <span class="material-symbols-outlined">map</span> Map
+                </a>
+                <a href="flights.html" class="nav-segment active">
+                    <span class="material-symbols-outlined">list_alt</span> List
+                </a>
+                <a href="stats.html" class="nav-segment ">
+                    <span class="material-symbols-outlined">query_stats</span> Stats
+                </a>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/idb@7/build/umd.js"></script>
+    <script src="static/js/database.js"></script>
+    <script type="module" src="https://esm.run/@material/web/all.js"></script>
+    <script src="static/js/app.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const themeBtn = document.getElementById('theme-menu-anchor');
+            const themeMenu = document.getElementById('theme-menu');
+            const darkModeSwitch = document.getElementById('dark-mode-switch');
+            const themeItems = document.querySelectorAll('.theme-item');
+            const themeLink = document.getElementById('theme-link');
+
+            // Notify charts when theme changes
+            function notifyThemeChange() {
+                setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('themeChanged'));
+                }, 50);
+            }
+
+            // Load saved preferences
+            const savedTheme = localStorage.getItem('appTheme') || 'green';
+            const savedDarkMode = localStorage.getItem('appDarkMode') === 'true';
+
+            // Apply initial settings
+            applyTheme(savedTheme);
+            if (savedDarkMode) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                darkModeSwitch.selected = true;
+            }
+
+            // Update UI to show active theme
+            updateActiveItem(savedTheme);
+
+            // Toggle Menu
+            themeBtn.addEventListener('click', () => {
+                themeMenu.open = !themeMenu.open;
+            });
+
+            // Handle Dark Mode
+            darkModeSwitch.addEventListener('change', () => {
+                const isDark = darkModeSwitch.selected;
+                if (isDark) {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                } else {
+                    document.documentElement.removeAttribute('data-theme');
+                }
+                localStorage.setItem('appDarkMode', isDark);
+                notifyThemeChange();
+            });
+
+            // Handle Color Themes
+            themeItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    const theme = item.dataset.value;
+                    applyTheme(theme);
+                    updateActiveItem(theme);
+                    localStorage.setItem('appTheme', theme);
+                    // Close menu on selection
+                    themeMenu.open = false; 
+                });
+            });
+
+            function updateActiveItem(activeTheme) {
+                themeItems.forEach(item => {
+                    if (item.dataset.value === activeTheme) {
+                        item.classList.add('active');
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+            }
+
+            function applyTheme(themeName) {
+                themeLink.href = `/static/css/themes/${themeName}.css`;
+                themeLink.onload = notifyThemeChange;
+            }
+        });
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const flightsPerPage = 20;
+            let allFlights = [];
+            let currentPage = 1;
+
+            const tbody = document.getElementById('flights-table-body');
+            const paginationControls = document.getElementById('pagination-controls');
+            const exportBtn = document.getElementById('export-btn');
+
+            function displayPage(page) {
+                currentPage = page;
+                tbody.innerHTML = ''; 
+
+                if (allFlights.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4">No flights have been added yet.</td></tr>';
+                    paginationControls.innerHTML = '';
+                    return;
+                }
+                
+                const startIndex = (page - 1) * flightsPerPage;
+                const endIndex = startIndex + flightsPerPage;
+                const paginatedFlights = allFlights.slice(startIndex, endIndex);
+
+                paginatedFlights.forEach(flight => {
+                    const row = tbody.insertRow();
+                    row.innerHTML = `
+                        <td>${flight.date}</td>
+                        <td>${flight.origin_flag || ''} ${flight.origin}</td>
+                        <td>${flight.destination_flag || ''} ${flight.destination}</td>
+                        <td class="edit-cell">
+                            <a href="edit_flight.html?id=${flight.id}">
+                                <md-icon-button class="edit-btn">
+                                    <span class="material-symbols-outlined">edit</span>
+                                </md-icon-button>
+                            </a>
+                        </td>
+                    `;
+                });
+
+                renderPaginationControls();
+            }
+
+            function renderPaginationControls() {
+                paginationControls.innerHTML = '';
+                const totalPages = Math.ceil(allFlights.length / flightsPerPage);
+
+                if (totalPages <= 1) return;
+
+                const prevButton = document.createElement('md-outlined-button');
+                prevButton.innerHTML = '&laquo; Previous';
+                if (currentPage === 1) prevButton.disabled = true;
+                prevButton.addEventListener('click', () => displayPage(currentPage - 1));
+                paginationControls.appendChild(prevButton);
+
+                const pageInfo = document.createElement('span');
+                pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+                pageInfo.style.padding = '0 16px';
+                paginationControls.appendChild(pageInfo);
+
+                const nextButton = document.createElement('md-outlined-button');
+                nextButton.innerHTML = 'Next &raquo;';
+                if (currentPage === totalPages) nextButton.disabled = true;
+                nextButton.addEventListener('click', () => displayPage(currentPage + 1));
+                paginationControls.appendChild(nextButton);
+            }
+
+            async function loadData() {
+                const flightsFromDb = await getAllFlights();
+                const airportCsvText = await fetch('static/airports.csv').then(res => res.text());
+                
+                // This will now work because Papa is defined
+                Papa.parse(airportCsvText, {
+                    header: true, skipEmptyLines: true,
+                    complete: (results) => {
+                        const airportData = new Map();
+                        results.data.forEach(row => {
+                            if (row.iata_code) airportData.set(row.iata_code, { country: row.iso_country });
+                        });
+
+                        const offset = 127397;
+                        const countryCodeToFlag = (code) => code && code.length === 2 ? String.fromCodePoint(code.charCodeAt(0) + offset) + String.fromCodePoint(code.charCodeAt(1) + offset) : '';
+
+                        allFlights = flightsFromDb.map(flight => {
+                            const originCountry = airportData.get(flight.origin)?.country;
+                            const destCountry = airportData.get(flight.destination)?.country;
+                            return {
+                                ...flight,
+                                origin_flag: countryCodeToFlag(originCountry),
+                                destination_flag: countryCodeToFlag(destCountry)
+                            };
+                        });
+
+                        displayPage(1);
+                    }
+                });
+            }
+            
+            loadData();
+            
+            exportBtn.addEventListener('click', async () => {
+                const flightsToExport = await getAllFlights();
+                const header = 'origin,destination,date
+';
+                const rows = flightsToExport.map(f => `${f.origin},${f.destination},${f.date}`);
+                const csvContent = header + rows.join('
+');
+                
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.setAttribute("href", url);
+                a.setAttribute("download", "flights.csv");
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+/* static/css/themes/dracula.css */
+:root {
+    --md-sys-color-primary: #bd93f9; /* Purple */
+    --md-sys-color-on-primary: #282a36;
+    --md-sys-color-primary-container: #44475a;
+    --md-sys-color-on-primary-container: #f8f8f2;
+    --md-sys-color-secondary: #ff79c6; /* Pink */
+    --md-sys-color-on-secondary: #282a36;
+    --md-sys-color-secondary-container: #44475a;
+    --md-sys-color-on-secondary-container: #ff79c6;
+    --md-sys-color-tertiary: #8be9fd; /* Cyan */
+    --md-sys-color-tertiary-container: #6272a4;
+
+    --md-sys-color-error: #ff5555;
+    --md-sys-color-background: #f8f8f2; /* Light mode: clean white/grey */
+    --md-sys-color-on-background: #282a36;
+    --md-sys-color-surface: #f8f8f2;
+    --md-sys-color-on-surface: #282a36;
+    --md-sys-color-surface-variant: #e2e2e2;
+    --md-sys-color-on-surface-variant: #44475a;
+    --md-sys-color-outline: #6272a4;
+    --md-sys-color-surface-container-low: #ffffff;
+    --md-sys-color-surface-container: #f0f0f0;
+    --md-sys-color-surface-container-high: #e2e2e2;
+    --md-sys-color-map: #e2e2e2;
+
+    /* Complementary for charts */
+    --md-sys-color-primary-comp-green: #50fa7b;
+    --md-sys-color-primary-comp-blue: #8be9fd;
+    --md-sys-color-primary-comp-yellow: #f1fa8c;
+    --md-sys-color-primary-comp-amber: #ffb86c;
+    --md-sys-color-primary-comp-slate: #6272a4;
+    --md-sys-color-primary-comp-orange: #ffb86c;
+    --md-sys-color-primary-comp-pink: #ff79c6;
+    --md-sys-color-primary-comp-red: #ff5555;
+    --md-sys-color-primary-comp-purple: #bd93f9;
+}
+
+[data-theme="dark"] {
+    --md-sys-color-background: #282a36;
+    --md-sys-color-on-background: #f8f8f2;
+    --md-sys-color-surface: #282a36;
+    --md-sys-color-on-surface: #f8f8f2;
+    --md-sys-color-surface-variant: #44475a;
+    --md-sys-color-on-surface-variant: #bd93f9;
+    --md-sys-color-outline: #6272a4;
+    
+    --md-sys-color-surface-container-low: #21222c;
+    --md-sys-color-surface-container: #282a36;
+    --md-sys-color-surface-container-high: #44475a;
+    --md-sys-color-map: #21222c;
+}

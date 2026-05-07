@@ -1,0 +1,52 @@
+/* static/css/themes/orange.css */
+:root {
+    --md-sys-color-primary: #bf360c; /* Deep Orange */
+    --md-sys-color-on-primary: #ffffff;
+    --md-sys-color-primary-container: #ffdbcf;
+    --md-sys-color-on-primary-container: #3e0b00;
+    --md-sys-color-secondary: #77574e;
+    --md-sys-color-on-secondary: #ffffff;
+    --md-sys-color-secondary-container: #ffdbcf;
+    --md-sys-color-on-secondary-container: #2c150f;
+    --md-sys-color-tertiary: #6b5d2e;
+    --md-sys-color-tertiary-container: #f5e1a6;
+
+    --md-sys-color-background: #fcfcfc;
+    --md-sys-color-on-background: #201a19;
+    --md-sys-color-surface: #fff8f6;
+    --md-sys-color-on-surface: #201a19;
+    --md-sys-color-surface-container-low: #fdf3f1;
+    --md-sys-color-surface-container: #fceee9;
+    --md-sys-color-surface-container-high: #fce9e3;
+    
+    --md-sys-color-surface-variant: #f5ded8;
+    --md-sys-color-on-surface-variant: #53433f;
+    --md-sys-color-outline: #85736e;
+    --md-sys-color-map: #eadeda;
+}
+
+[data-theme="dark"] {
+    --md-sys-color-primary: #ffb59d;
+    --md-sys-color-on-primary: #5f1600;
+    --md-sys-color-primary-container: #872200;
+    --md-sys-color-on-primary-container: #ffdbcf;
+    --md-sys-color-secondary: #e7bdb2;
+    --md-sys-color-on-secondary: #442a22;
+    --md-sys-color-secondary-container: #5d4037;
+    --md-sys-color-on-secondary-container: #ffdbcf;
+    --md-sys-color-tertiary: #d8c58c;
+    --md-sys-color-tertiary-container: #524619;
+
+    --md-sys-color-background: #201a19;
+    --md-sys-color-on-background: #ede0dd;
+    --md-sys-color-surface: #181211;
+    --md-sys-color-on-surface: #ede0dd;
+    --md-sys-color-surface-container-low: #201a19;
+    --md-sys-color-surface-container: #251e1d;
+    --md-sys-color-surface-container-high: #2f2827;
+    
+    --md-sys-color-surface-variant: #53433f;
+    --md-sys-color-on-surface-variant: #d8c2bc;
+    --md-sys-color-outline: #a08c87;
+    --md-sys-color-map: #2f2827;
+}

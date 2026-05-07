@@ -1,0 +1,576 @@
+package com.example.flightstats;
+
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.TypedValue;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+
+import com.example.flightstats.data.Airport;
+import com.example.flightstats.data.AppDatabase;
+import com.example.flightstats.data.Flight;
+import com.github.mikephil.charting.animation.Easing;
+import com.github.mikephil.charting.charts.BarChart;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.components.YAxis;
+import com.github.mikephil.charting.data.BarData;
+import com.github.mikephil.charting.data.BarDataSet;
+import com.github.mikephil.charting.data.BarEntry;
+import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
+import com.github.mikephil.charting.formatter.ValueFormatter;
+import com.github.mikephil.charting.utils.Utils;
+import com.google.android.material.button.MaterialButtonToggleGroup;
+import com.google.android.material.checkbox.MaterialCheckBox;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.shape.MaterialShapeDrawable;
+import com.google.android.material.shape.ShapeAppearanceModel;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.concurrent.Executors;
+
+public class StatsFragment extends Fragment {
+
+    private static final String PREFS_CARDS = "StatsCards";
+    private static final String[] CARD_IDS   = {"overview", "distance", "longest", "top_airports", "charts", "footprint", "time", "top_routes"};
+    private static final String[] CARD_LABELS = {"Overview", "Distance", "Longest Flight", "Top Airports", "Flight Patterns", "Global Footprint", "Time Aloft", "Top Routes"};
+    private static final Set<String> DEFAULT_ON = new HashSet<>(Arrays.asList("overview", "distance", "longest", "top_airports", "charts", "footprint"));
+
+    private View root;
+    private BarChart barChart;
+    private EdgeToEdgePieView pieChart;
+    private MaterialButtonToggleGroup toggleGroup;
+
+    // Precomputed chart data (set on background thread, read on main)
+    private int[] dataByMonth  = new int[12];
+    private int[] dataByDay    = new int[7];
+    private int[] dataByYear   = new int[0];
+    private String[] yearLabels = new String[0];
+
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+        root = inflater.inflate(R.layout.fragment_stats, container, false);
+
+        barChart    = root.findViewById(R.id.bar_chart);
+        pieChart    = root.findViewById(R.id.pie_chart);
+        toggleGroup = root.findViewById(R.id.toggle_chart_type);
+
+        setupChart();
+
+        toggleGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+            if (!isChecked) return;
+            if (checkedId == R.id.btn_by_month) showChartMonth();
+            else if (checkedId == R.id.btn_by_day)  showChartDay();
+            else if (checkedId == R.id.btn_by_year) showChartYear();
+        });
+        toggleGroup.check(R.id.btn_by_month);
+
+        applyCardVisibility();
+        loadStats();
+
+        root.findViewById(R.id.fab_edit_stats).setOnClickListener(v -> showEditDialog());
+        return root;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        applyCardVisibility();
+        loadStats();
+    }
+
+    // ── Card visibility ───────────────────────────────────────────────────────
+
+    private SharedPreferences prefs() {
+        return requireContext().getSharedPreferences(PREFS_CARDS, Context.MODE_PRIVATE);
+    }
+
+    private boolean isCardEnabled(String id) {
+        return prefs().getBoolean(id, DEFAULT_ON.contains(id));
+    }
+
+    private int cardViewId(String id) {
+        switch (id) {
+            case "overview":     return R.id.card_overview;
+            case "distance":     return R.id.card_distance;
+            case "longest":      return R.id.card_longest;
+            case "top_airports": return R.id.card_top_airports;
+            case "charts":       return R.id.card_charts;
+            case "footprint":    return R.id.card_footprint;
+            case "time":         return R.id.card_time;
+            case "top_routes":   return R.id.card_top_routes;
+            default:             return 0;
+        }
+    }
+
+    private void applyCardVisibility() {
+        if (root == null) return;
+        for (String id : CARD_IDS) {
+            int viewId = cardViewId(id);
+            if (viewId != 0) {
+                View card = root.findViewById(viewId);
+                if (card != null) card.setVisibility(isCardEnabled(id) ? View.VISIBLE : View.GONE);
+            }
+        }
+    }
+
+    private void showEditDialog() {
+        boolean[] checked = new boolean[CARD_IDS.length];
+        for (int i = 0; i < CARD_IDS.length; i++) checked[i] = isCardEnabled(CARD_IDS[i]);
+
+        LinearLayout layout = new LinearLayout(requireContext());
+        layout.setOrientation(LinearLayout.VERTICAL);
+        int pad = dp(16);
+        layout.setPadding(pad, pad / 2, pad, pad / 2);
+
+        for (int i = 0; i < CARD_IDS.length; i++) {
+            MaterialCheckBox cb = new MaterialCheckBox(requireContext());
+            cb.setText(CARD_LABELS[i]);
+            cb.setChecked(checked[i]);
+            final int idx = i;
+            cb.setOnCheckedChangeListener((btn, isChecked) -> checked[idx] = isChecked);
+            layout.addView(cb);
+        }
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Dashboard Cards")
+                .setView(layout)
+                .setPositiveButton("Apply", (dialog, which) -> {
+                    SharedPreferences.Editor ed = prefs().edit();
+                    for (int i = 0; i < CARD_IDS.length; i++) ed.putBoolean(CARD_IDS[i], checked[i]);
+                    ed.apply();
+                    applyCardVisibility();
+                    loadStats();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    // ── Chart setup ───────────────────────────────────────────────────────────
+
+    private void setupChart() {
+        int textColor = resolveColor(com.google.android.material.R.attr.colorOnSurface);
+
+        // Use our custom renderer for pill-shaped bars
+        float radiusPx = Utils.convertDpToPixel(20f);
+        barChart.setRenderer(new RoundedBarChartRenderer(barChart, barChart.getAnimator(),
+                barChart.getViewPortHandler(), radiusPx));
+
+        barChart.setDrawBarShadow(false);
+        barChart.setDrawValueAboveBar(true);
+        barChart.setDrawGridBackground(false);
+        barChart.setDrawBorders(false);
+        barChart.getDescription().setEnabled(false);
+        barChart.getLegend().setEnabled(false);
+        barChart.setTouchEnabled(false);
+        barChart.setScaleEnabled(false);
+        barChart.setFitBars(true);
+        barChart.setExtraBottomOffset(4f);
+        barChart.setExtraTopOffset(12f);
+        barChart.setBackgroundColor(Color.TRANSPARENT);
+
+        XAxis xAxis = barChart.getXAxis();
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        xAxis.setDrawGridLines(false);
+        xAxis.setDrawAxisLine(false);
+        xAxis.setTextColor(textColor);
+        xAxis.setTextSize(10f);
+        xAxis.setGranularity(1f);
+
+        YAxis left = barChart.getAxisLeft();
+        left.setDrawGridLines(true);
+        left.setGridColor(Color.argb(25, 127, 127, 127));
+        left.setDrawAxisLine(false);
+        left.setTextColor(textColor);
+        left.setAxisMinimum(0f);
+        left.setGranularity(1f);
+        left.setSpaceTop(20f);
+
+        barChart.getAxisRight().setEnabled(false);
+    }
+
+    private void showChartMonth() {
+        String[] labels = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
+        renderChart(dataByMonth, labels);
+    }
+
+    private void showChartDay() {
+        String[] labels = {"Mon","Tue","Wed","Thu","Fri","Sat","Sun"};
+        renderChart(dataByDay, labels);
+    }
+
+    private void showChartYear() {
+        // For years, skip every other label to avoid crowding
+        final int[] vals = dataByYear;
+        final String[] lbls = yearLabels;
+        if (vals == null || vals.length == 0) return;
+
+        int primaryColor   = resolveColor(com.google.android.material.R.attr.colorPrimary);
+        int secondaryColor = resolveColor(com.google.android.material.R.attr.colorSecondaryContainer);
+        int onSurface      = resolveColor(com.google.android.material.R.attr.colorOnSurface);
+
+        int max = 0;
+        for (int v : vals) if (v > max) max = v;
+
+        List<BarEntry> entries = new ArrayList<>();
+        List<Integer> colors  = new ArrayList<>();
+        for (int i = 0; i < vals.length; i++) {
+            entries.add(new BarEntry(i, vals[i]));
+            colors.add(vals[i] == max && max > 0 ? primaryColor : secondaryColor);
+        }
+
+        BarDataSet dataSet = new BarDataSet(entries, "");
+        dataSet.setColors(colors);
+        dataSet.setValueTextColor(onSurface);
+        dataSet.setValueTextSize(9f);
+        dataSet.setValueFormatter(new ValueFormatter() {
+            @Override public String getBarLabel(BarEntry e) {
+                return (int)e.getY() == 0 ? "" : String.valueOf((int)e.getY());
+            }
+        });
+
+        BarData data = new BarData(dataSet);
+        data.setBarWidth(0.78f);
+
+        // Show every other year label to avoid crowding
+        barChart.getXAxis().setValueFormatter(new IndexAxisValueFormatter() {
+            @Override public String getFormattedValue(float value) {
+                int idx = Math.round(value);
+                if (idx < 0 || idx >= lbls.length) return "";
+                return idx % 2 == 0 ? lbls[idx] : "";
+            }
+        });
+        barChart.getXAxis().setLabelCount(vals.length, true);
+        barChart.setData(data);
+        barChart.animateY(500, Easing.EaseOutCubic);
+        barChart.invalidate();
+    }
+
+    private void renderChart(int[] values, String[] labels) {
+        if (values == null || values.length == 0 || barChart == null) return;
+
+        int primaryColor   = resolveColor(com.google.android.material.R.attr.colorPrimary);
+        int secondaryColor = resolveColor(com.google.android.material.R.attr.colorSecondaryContainer);
+        int onPrimary      = resolveColor(com.google.android.material.R.attr.colorOnSurface);
+
+        // Find max value to highlight the peak bar(s)
+        int max = 0;
+        for (int v : values) if (v > max) max = v;
+
+        List<BarEntry> entries = new ArrayList<>();
+        List<Integer> colors  = new ArrayList<>();
+        for (int i = 0; i < values.length; i++) {
+            entries.add(new BarEntry(i, values[i]));
+            // Peak bar gets primary color, others get secondary container
+            colors.add(values[i] == max && max > 0 ? primaryColor : secondaryColor);
+        }
+
+        BarDataSet dataSet = new BarDataSet(entries, "");
+        dataSet.setColors(colors);
+        dataSet.setValueTextColor(onPrimary);
+        dataSet.setValueTextSize(9f);
+        dataSet.setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getBarLabel(BarEntry barEntry) {
+                int v = (int) barEntry.getY();
+                return v == 0 ? "" : String.valueOf(v);
+            }
+        });
+
+        BarData data = new BarData(dataSet);
+        data.setBarWidth(0.78f);
+
+        barChart.getXAxis().setValueFormatter(new IndexAxisValueFormatter(labels));
+        barChart.getXAxis().setLabelCount(labels.length);
+        barChart.setData(data);
+        barChart.animateY(500, Easing.EaseOutCubic);
+        barChart.invalidate();
+    }
+
+    // ── Stats computation ─────────────────────────────────────────────────────
+
+    private void loadStats() {
+        if (!isAdded()) return;
+        Executors.newSingleThreadExecutor().execute(() -> {
+            AppDatabase db = AppDatabase.getDatabase(requireContext());
+            List<Flight> flights = db.flightDao().getAllFlights();
+
+            Set<String> airportSet = new HashSet<>(), routeSet = new HashSet<>(), countrySet = new HashSet<>();
+            Map<String, Integer> airportCounts = new HashMap<>(), routeCounts = new HashMap<>();
+            Map<String, Integer> countryCounts = new HashMap<>();
+            double totalKm = 0;
+            Flight longest = null;
+
+            // Chart accumulators
+            int[] byMonth = new int[12];
+            int[] byDay   = new int[7];
+            TreeMap<Integer, Integer> byYearMap = new TreeMap<>();
+
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+
+            for (Flight f : flights) {
+                totalKm += f.distance;
+                airportSet.add(f.origin);
+                airportSet.add(f.destination);
+                airportCounts.merge(f.origin, 1, Integer::sum);
+                airportCounts.merge(f.destination, 1, Integer::sum);
+
+                String[] pair = {f.origin, f.destination};
+                Arrays.sort(pair);
+                String routeKey = pair[0] + "-" + pair[1];
+                routeSet.add(routeKey);
+                routeCounts.merge(routeKey, 1, Integer::sum);
+
+                if (longest == null || f.distance > longest.distance) longest = f;
+
+                Airport o = db.airportDao().getByIata(f.origin);
+                Airport d = db.airportDao().getByIata(f.destination);
+                if (o != null) {
+                    countrySet.add(o.country);
+                    countryCounts.merge(o.country, 1, Integer::sum);
+                }
+                if (d != null) {
+                    countrySet.add(d.country);
+                    countryCounts.merge(d.country, 1, Integer::sum);
+                }
+
+                // Chart data
+                if (f.date != null && f.date.length() >= 7) {
+                    try {
+                        int month = Integer.parseInt(f.date.substring(5, 7)) - 1;
+                        if (month >= 0 && month < 12) byMonth[month]++;
+                    } catch (NumberFormatException ignored) {}
+                }
+                if (f.date != null && f.date.length() >= 10) {
+                    try {
+                        Date d2 = sdf.parse(f.date);
+                        if (d2 != null) {
+                            Calendar cal = Calendar.getInstance();
+                            cal.setTime(d2);
+                            int dow = cal.get(Calendar.DAY_OF_WEEK); // 1=Sun, 2=Mon...7=Sat
+                            int idx = (dow + 5) % 7; // 0=Mon...6=Sun
+                            byDay[idx]++;
+                        }
+                    } catch (Exception ignored) {}
+                }
+                if (f.date != null && f.date.length() >= 4) {
+                    try {
+                        int year = Integer.parseInt(f.date.substring(0, 4));
+                        byYearMap.merge(year, 1, Integer::sum);
+                    } catch (NumberFormatException ignored) {}
+                }
+            }
+
+            // Convert year map to arrays
+            int[] byYearArr = new int[byYearMap.size()];
+            String[] yearLbls = new String[byYearMap.size()];
+            int yi = 0;
+            for (Map.Entry<Integer, Integer> e : byYearMap.entrySet()) {
+                yearLbls[yi] = String.valueOf(e.getKey());
+                byYearArr[yi] = e.getValue();
+                yi++;
+            }
+
+            // Top lists
+            List<Map.Entry<String, Integer>> sortedAirports = new ArrayList<>(airportCounts.entrySet());
+            sortedAirports.sort((a, b) -> b.getValue() - a.getValue());
+            List<String> topAirports = new ArrayList<>();
+            for (int i = 0; i < Math.min(5, sortedAirports.size()); i++) {
+                Map.Entry<String, Integer> e = sortedAirports.get(i);
+                Airport a = db.airportDao().getByIata(e.getKey());
+                String city = a != null && a.city != null ? a.city : e.getKey();
+                topAirports.add(e.getKey() + "  ·  " + city + "  (" + e.getValue() + ")");
+            }
+
+            // Pie Chart Data
+            List<Map.Entry<String, Integer>> sortedCountries = new ArrayList<>(countryCounts.entrySet());
+            sortedCountries.sort((a, b) -> b.getValue() - a.getValue());
+            List<EdgeToEdgePieView.Slice> pieSlices = new ArrayList<>();
+            int otherCount = 0;
+            double pieTotal = 0;
+            for (int count : countryCounts.values()) pieTotal += count;
+
+            int[] palette = {
+                    resolveColor(com.google.android.material.R.attr.colorPrimary),
+                    resolveColor(com.google.android.material.R.attr.colorTertiary),
+                    resolveColor(com.google.android.material.R.attr.colorSecondary),
+                    resolveColor(com.google.android.material.R.attr.colorPrimaryContainer),
+                    resolveColor(com.google.android.material.R.attr.colorTertiaryContainer),
+                    resolveColor(com.google.android.material.R.attr.colorSurfaceVariant)
+            };
+
+            for (int i = 0; i < sortedCountries.size(); i++) {
+                if (i < 5) { // Top 5 countries
+                    String code = sortedCountries.get(i).getKey();
+                    float val = sortedCountries.get(i).getValue();
+                    String pct = String.format(Locale.US, "%.1f%%", (val / pieTotal) * 100);
+                    pieSlices.add(new EdgeToEdgePieView.Slice(
+                            val, palette[i % palette.length], FlightListItem.countryToFlag(code) + " " + code, pct));
+                } else {
+                    otherCount += sortedCountries.get(i).getValue();
+                }
+            }
+            if (otherCount > 0) {
+                String pct = String.format(Locale.US, "%.1f%%", (otherCount / pieTotal) * 100);
+                pieSlices.add(new EdgeToEdgePieView.Slice(otherCount, palette[5], "Other", pct));
+            }
+
+            List<Map.Entry<String, Integer>> sortedRoutes = new ArrayList<>(routeCounts.entrySet());
+            sortedRoutes.sort((a, b) -> b.getValue() - a.getValue());
+            List<String> topRoutes = new ArrayList<>();
+            for (int i = 0; i < Math.min(5, sortedRoutes.size()); i++) {
+                Map.Entry<String, Integer> e = sortedRoutes.get(i);
+                String[] parts = e.getKey().split("-");
+                topRoutes.add(parts[0] + "  →  " + (parts.length > 1 ? parts[1] : "?") + "  (" + e.getValue() + "×)");
+            }
+
+            final int finalFlights   = flights.size();
+            final int finalCountries = countrySet.size();
+            final int finalAirports  = airportSet.size();
+            final int finalRoutes    = routeSet.size();
+            final double km = totalKm;
+            final Flight bestFlight = longest;
+
+            // Store chart arrays for toggle switching
+            dataByMonth = byMonth;
+            dataByDay   = byDay;
+            dataByYear  = byYearArr;
+            yearLabels  = yearLbls;
+
+            new Handler(Looper.getMainLooper()).post(() -> {
+                if (!isAdded() || root == null) return;
+
+                setText(R.id.stat_flights,   String.valueOf(finalFlights));
+                setText(R.id.stat_countries, String.valueOf(finalCountries));
+                setText(R.id.stat_airports,  String.valueOf(finalAirports));
+                setText(R.id.stat_routes,    String.valueOf(finalRoutes));
+
+                setText(R.id.stat_km,               formatKm(km) + " km");
+                setText(R.id.stat_miles,             formatKm(km * 0.621371) + " mi");
+                setText(R.id.stat_circumnavigations, String.format("%.2f×", km / 40075.0));
+                setText(R.id.stat_moon,              String.format("%.1f%%", (km / 384400.0) * 100.0));
+
+                if (bestFlight != null) {
+                    setText(R.id.stat_longest_origin, bestFlight.origin);
+                    setText(R.id.stat_longest_dest,   bestFlight.destination);
+                    setText(R.id.stat_longest_detail, Math.round(bestFlight.distance) + " km  ·  " + bestFlight.date);
+                }
+
+                int hours = (int)(km / 800.0);
+                setText(R.id.stat_hours, String.valueOf(hours));
+                setText(R.id.stat_days,  String.valueOf(hours / 24));
+
+                populateList(R.id.list_top_airports, topAirports);
+                populateList(R.id.list_top_routes, topRoutes);
+
+                // Refresh chart with currently selected tab
+                int checkedId = toggleGroup.getCheckedButtonId();
+                if (checkedId == R.id.btn_by_day)       showChartDay();
+                else if (checkedId == R.id.btn_by_year) showChartYear();
+                else                                     showChartMonth();
+
+                // Render Pie Chart
+                if (pieChart != null && !pieSlices.isEmpty()) {
+                    pieChart.setSlices(pieSlices);
+                }
+            });
+        });
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private void setText(int viewId, String text) {
+        TextView tv = root.findViewById(viewId);
+        if (tv != null) tv.setText(text);
+    }
+
+    private void populateList(int containerId, List<String> items) {
+        LinearLayout container = root.findViewById(containerId);
+        if (container == null) return;
+        container.removeAllViews();
+        float density = getResources().getDisplayMetrics().density;
+        int primaryColor = resolveColor(com.google.android.material.R.attr.colorPrimary);
+        // Detect which container to pick right text color
+        boolean onSecondary = (containerId == R.id.list_top_routes);
+        int textColor = onSecondary
+                ? resolveColor(com.google.android.material.R.attr.colorOnSecondaryContainer)
+                : resolveColor(com.google.android.material.R.attr.colorOnSurface);
+
+        for (int i = 0; i < items.size(); i++) {
+            LinearLayout row = new LinearLayout(requireContext());
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            int vPad = (int)(6 * density);
+            row.setPadding(0, vPad, 0, vPad);
+
+            // Rank badge — square shape (matches MaterialShapes.SQUARE: all corners ~30% rounded)
+            TextView rank = new TextView(requireContext());
+            rank.setText(String.valueOf(i + 1));
+            rank.setTextSize(11);
+            rank.setTextColor(resolveColor(com.google.android.material.R.attr.colorOnPrimary));
+            rank.setTypeface(null, android.graphics.Typeface.BOLD);
+            int badgeSize = (int)(24 * density);
+            float cornerRadius = badgeSize * 0.30f; // ~30% = MaterialShapes.SQUARE rounding
+            MaterialShapeDrawable squareBg = new MaterialShapeDrawable(
+                    ShapeAppearanceModel.builder()
+                            .setAllCornerSizes(cornerRadius)
+                            .build());
+            squareBg.setFillColor(android.content.res.ColorStateList.valueOf(primaryColor));
+            rank.setBackground(squareBg);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(badgeSize, badgeSize);
+            lp.setMarginEnd((int)(10 * density));
+            rank.setLayoutParams(lp);
+            rank.setGravity(android.view.Gravity.CENTER);
+            rank.setPadding(0, 0, 0, 0);
+
+            // Content
+            TextView content = new TextView(requireContext());
+            content.setText(items.get(i));
+            content.setTextSize(14);
+            content.setTextColor(textColor);
+
+            row.addView(rank);
+            row.addView(content);
+            container.addView(row);
+        }
+    }
+
+    private String formatKm(double km) {
+        if (km >= 1_000_000) return String.format("%.2fM", km / 1_000_000);
+        if (km >= 1_000)     return String.format(Locale.US, "%,.0f", km);
+        return String.valueOf((int) km);
+    }
+
+    private int dp(int dp) {
+        return (int)(dp * getResources().getDisplayMetrics().density);
+    }
+
+    private int resolveColor(int attr) {
+        TypedValue tv = new TypedValue();
+        requireContext().getTheme().resolveAttribute(attr, tv, true);
+        return tv.data;
+    }
+}

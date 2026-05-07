@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- ── M3 Expressive Card Shapes ── -->
+
+    <!-- Diagonal: large corners top-left + bottom-right only (feels dynamic/angled) -->
+    <style name="ShapeAppearance.FlightStats.Diagonal" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">28dp</item>
+        <item name="cornerSizeTopRight">6dp</item>
+        <item name="cornerSizeBottomLeft">6dp</item>
+        <item name="cornerSizeBottomRight">28dp</item>
+    </style>
+
+    <!-- Top-only: large corners on top, flat on bottom (like a floating card) -->
+    <style name="ShapeAppearance.FlightStats.TopRounded" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">28dp</item>
+        <item name="cornerSizeTopRight">28dp</item>
+        <item name="cornerSizeBottomLeft">6dp</item>
+        <item name="cornerSizeBottomRight">6dp</item>
+    </style>
+
+    <!-- Full pill / stadium — for small highlight cards -->
+    <style name="ShapeAppearance.FlightStats.Stadium" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+
+    <!-- Squircle (extra-large uniform rounding) — for hero stat numbers -->
+    <style name="ShapeAppearance.FlightStats.Squircle" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">28dp</item>
+    </style>
+
+</resources>

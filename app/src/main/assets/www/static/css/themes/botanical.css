@@ -1,0 +1,63 @@
+/* static/css/themes/botanical.css */
+:root {
+    --md-sys-color-primary: #7b9c98; /* Jungle */
+    --md-sys-color-on-primary: #ffffff;
+    --md-sys-color-primary-container: #bcebea;
+    --md-sys-color-on-primary-container: #00201e;
+    --md-sys-color-secondary: #495e57; /* Darker Green */
+    --md-sys-color-on-secondary: #ffffff;
+    --md-sys-color-secondary-container: #cbe0d8;
+    --md-sys-color-on-secondary-container: #051f19;
+    --md-sys-color-tertiary: #e3dec6; /* Bamboo */
+    --md-sys-color-tertiary-container: #f0ebe0;
+
+    --md-sys-color-background: #fcfcf9;
+    --md-sys-color-on-background: #1a1c1b;
+    --md-sys-color-surface: #f7f9f7;
+    --md-sys-color-on-surface: #1a1c1b;
+    --md-sys-color-surface-variant: #dde4e2;
+    --md-sys-color-on-surface-variant: #404947;
+    --md-sys-color-outline: #707977;
+    
+    --md-sys-color-surface-container-low: #f1f5f3;
+    --md-sys-color-surface-container: #ebefed;
+    --md-sys-color-surface-container-high: #e5e9e7;
+    --md-sys-color-map: #e0e5e3;
+
+    /* Complementary */
+    --md-sys-color-primary-comp-green: #7b9c98;
+    --md-sys-color-primary-comp-blue: #607d8b;
+    --md-sys-color-primary-comp-yellow: #e3dec6;
+    --md-sys-color-primary-comp-amber: #d7ccc8;
+    --md-sys-color-primary-comp-slate: #37474f;
+    --md-sys-color-primary-comp-orange: #ffab91;
+    --md-sys-color-primary-comp-pink: #f48fb1;
+    --md-sys-color-primary-comp-red: #ef9a9a;
+    --md-sys-color-primary-comp-purple: #ce93d8;
+}
+
+[data-theme="dark"] {
+    --md-sys-color-primary: #a0d0cb;
+    --md-sys-color-on-primary: #003734;
+    --md-sys-color-primary-container: #1e4e4b;
+    --md-sys-color-on-primary-container: #bcebea;
+    --md-sys-color-secondary: #b0ccbc;
+    --md-sys-color-on-secondary: #1b352d;
+    --md-sys-color-secondary-container: #324b42;
+    --md-sys-color-on-secondary-container: #cbe0d8;
+    --md-sys-color-tertiary: #d9d4bc;
+    --md-sys-color-tertiary-container: #55513f;
+
+    --md-sys-color-background: #171818;
+    --md-sys-color-on-background: #e1e3e1;
+    --md-sys-color-surface: #171818;
+    --md-sys-color-on-surface: #e1e3e1;
+    --md-sys-color-surface-variant: #404947;
+    --md-sys-color-on-surface-variant: #bfc9c6;
+    --md-sys-color-outline: #899390;
+    
+    --md-sys-color-surface-container-low: #1d2020;
+    --md-sys-color-surface-container: #212524;
+    --md-sys-color-surface-container-high: #2b302f;
+    --md-sys-color-map: #2b302f;
+}
