@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.preference.PreferenceManager;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,12 +20,12 @@ import com.example.flightstats.data.AirportImporter;
 import com.example.flightstats.data.AppDatabase;
 import com.example.flightstats.data.CsvImporter;
 import com.example.flightstats.data.Flight;
+import com.google.android.material.R;
 
 import org.osmdroid.config.Configuration;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
-import org.osmdroid.views.overlay.Polyline;
 import org.osmdroid.views.overlay.Marker;
 
 import java.util.ArrayList;
@@ -91,12 +92,13 @@ public class MapFragment extends Fragment {
             List<Flight> flights = db.flightDao().getAllFlights();
 
             Set<String> airportSet = new HashSet<>();
-            Set<String> routeSet   = new HashSet<>();
             Set<String> countrySet = new HashSet<>();
 
-            // Collect unique routes and resolve airport positions
+            // Count bi-directional route frequencies
+            Map<String, Integer>  routeFreq    = new HashMap<>();
             Map<String, GeoPoint> positionCache = new HashMap<>();
-            List<RouteData> routes = new ArrayList<>();
+            // Store ordered route data (from/to based on first encounter)
+            Map<String, RouteData> routeDataMap = new HashMap<>();
 
             for (Flight f : flights) {
                 airportSet.add(f.origin);
@@ -105,6 +107,9 @@ public class MapFragment extends Fragment {
                 String[] pair = {f.origin, f.destination};
                 Arrays.sort(pair);
                 String routeKey = pair[0] + "-" + pair[1];
+
+                // Increment frequency
+                routeFreq.put(routeKey, routeFreq.getOrDefault(routeKey, 0) + 1);
 
                 // Resolve airport positions (cached)
                 GeoPoint fromPt = resolvePosition(db, positionCache, f.origin);
@@ -116,35 +121,49 @@ public class MapFragment extends Fragment {
                 if (oAirport != null) countrySet.add(oAirport.country);
                 if (dAirport != null) countrySet.add(dAirport.country);
 
-                if (fromPt != null && toPt != null && !routeSet.contains(routeKey)) {
-                    routeSet.add(routeKey);
-                    routes.add(new RouteData(fromPt, toPt, f.origin, f.destination));
+                if (fromPt != null && toPt != null && !routeDataMap.containsKey(routeKey)) {
+                    routeDataMap.put(routeKey, new RouteData(fromPt, toPt, f.origin, f.destination));
                 }
             }
 
             int finalFlights   = flights.size();
             int finalAirports  = airportSet.size();
-            int finalRoutes    = routeSet.size();
+            int finalRoutes    = routeDataMap.size();
             int finalCountries = countrySet.size();
+
+            // Resolve theme colorPrimary on background thread is unsafe — pass key/value map to UI thread
+            final Map<String, Integer>  finalRouteFreq    = routeFreq;
+            final Map<String, RouteData> finalRouteDataMap = routeDataMap;
 
             new Handler(Looper.getMainLooper()).post(() -> {
                 if (getView() == null || !isAdded()) return;
                 mapView.getOverlays().clear();
 
-                // Draw geodesic route arcs
-                for (RouteData r : routes) {
-                    Polyline line = new Polyline(mapView);
+                // Resolve theme colorPrimary on the main thread
+                TypedValue tv = new TypedValue();
+                requireContext().getTheme().resolveAttribute(
+                        com.google.android.material.R.attr.colorPrimary, tv, true);
+                int primaryColor = tv.data;
+                // Apply 80% alpha for a nice semi-transparent look
+                int routeColor = (0xCC000000 & 0xFF000000) | (primaryColor & 0x00FFFFFF);
+
+                float density = requireContext().getResources().getDisplayMetrics().density;
+
+                // Draw tapered spindle arcs ordered by frequency (least frequent first so busy routes render on top)
+                List<String> routeKeys = new ArrayList<>(finalRouteDataMap.keySet());
+                routeKeys.sort((a, b) -> finalRouteFreq.getOrDefault(a, 1) - finalRouteFreq.getOrDefault(b, 1));
+
+                for (String key : routeKeys) {
+                    RouteData r = finalRouteDataMap.get(key);
+                    int freq = finalRouteFreq.getOrDefault(key, 1);
                     List<GeoPoint> arc = GeodesicHelper.greatCircleArc(r.from, r.to, 64);
-                    line.setPoints(arc);
-                    line.setColor(0xCC1976D2); // M3 primary blue
-                    line.setWidth(2.5f);
-                    line.setTitle(r.fromCode + " → " + r.toCode);
-                    mapView.getOverlays().add(line);
+                    TaperedRouteOverlay overlay = new TaperedRouteOverlay(arc, freq, routeColor, density);
+                    mapView.getOverlays().add(overlay);
                 }
 
-                // Draw M3 circle markers (deduplicated by airport)
+                // Draw M3 circle markers on top (deduplicated by airport)
                 Set<String> drawnAirports = new HashSet<>();
-                for (RouteData r : routes) {
+                for (RouteData r : finalRouteDataMap.values()) {
                     drawMarker(r.from, r.fromCode, drawnAirports);
                     drawMarker(r.to,   r.toCode,   drawnAirports);
                 }
