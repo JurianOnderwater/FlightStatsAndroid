@@ -55,6 +55,14 @@ public class MapFragment extends Fragment {
         mapView = view.findViewById(R.id.map_view);
         mapView.setTileSource(TileSourceFactory.MAPNIK);
         mapView.setMultiTouchControls(true);
+        
+        // Prevent infinite zooming and scrolling
+        mapView.setMinZoomLevel(3.0);
+        mapView.setMaxZoomLevel(12.0);
+        mapView.setHorizontalMapRepetitionEnabled(false);
+        mapView.setVerticalMapRepetitionEnabled(false);
+        mapView.setScrollableAreaLimitDouble(new org.osmdroid.util.BoundingBox(85.0, 180.0, -85.0, -180.0));
+
         mapView.getController().setZoom(3.0);
         mapView.getController().setCenter(new GeoPoint(30.0, 15.0));
 
