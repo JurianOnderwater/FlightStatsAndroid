@@ -20,13 +20,13 @@ import com.example.flightstats.data.AirportImporter;
 import com.example.flightstats.data.AppDatabase;
 import com.example.flightstats.data.CsvImporter;
 import com.example.flightstats.data.Flight;
-import com.google.android.material.R;
 
 import org.osmdroid.config.Configuration;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.Marker;
+import org.osmdroid.views.overlay.Polyline;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -94,10 +94,8 @@ public class MapFragment extends Fragment {
             Set<String> airportSet = new HashSet<>();
             Set<String> countrySet = new HashSet<>();
 
-            // Count bi-directional route frequencies
-            Map<String, Integer>  routeFreq    = new HashMap<>();
+            // Collect unique routes and resolve airport positions
             Map<String, GeoPoint> positionCache = new HashMap<>();
-            // Store ordered route data (from/to based on first encounter)
             Map<String, RouteData> routeDataMap = new HashMap<>();
 
             for (Flight f : flights) {
@@ -108,8 +106,6 @@ public class MapFragment extends Fragment {
                 Arrays.sort(pair);
                 String routeKey = pair[0] + "-" + pair[1];
 
-                // Increment frequency
-                routeFreq.put(routeKey, routeFreq.getOrDefault(routeKey, 0) + 1);
 
                 // Resolve airport positions (cached)
                 GeoPoint fromPt = resolvePosition(db, positionCache, f.origin);
@@ -131,8 +127,7 @@ public class MapFragment extends Fragment {
             int finalRoutes    = routeDataMap.size();
             int finalCountries = countrySet.size();
 
-            // Resolve theme colorPrimary on background thread is unsafe — pass key/value map to UI thread
-            final Map<String, Integer>  finalRouteFreq    = routeFreq;
+            // Resolve theme colorPrimary on background thread is unsafe — pass map to UI thread
             final Map<String, RouteData> finalRouteDataMap = routeDataMap;
 
             new Handler(Looper.getMainLooper()).post(() -> {
@@ -142,23 +137,21 @@ public class MapFragment extends Fragment {
                 // Resolve theme colorPrimary on the main thread
                 TypedValue tv = new TypedValue();
                 requireContext().getTheme().resolveAttribute(
-                        com.google.android.material.R.attr.colorPrimary, tv, true);
+                        androidx.appcompat.R.attr.colorPrimary, tv, true);
                 int primaryColor = tv.data;
                 // Apply 80% alpha for a nice semi-transparent look
                 int routeColor = (0xCC000000 & 0xFF000000) | (primaryColor & 0x00FFFFFF);
 
-                float density = requireContext().getResources().getDisplayMetrics().density;
-
-                // Draw tapered spindle arcs ordered by frequency (least frequent first so busy routes render on top)
-                List<String> routeKeys = new ArrayList<>(finalRouteDataMap.keySet());
-                routeKeys.sort((a, b) -> finalRouteFreq.getOrDefault(a, 1) - finalRouteFreq.getOrDefault(b, 1));
-
-                for (String key : routeKeys) {
+                // Draw geodesic route arcs using theme colorPrimary
+                for (String key : finalRouteDataMap.keySet()) {
                     RouteData r = finalRouteDataMap.get(key);
-                    int freq = finalRouteFreq.getOrDefault(key, 1);
                     List<GeoPoint> arc = GeodesicHelper.greatCircleArc(r.from, r.to, 64);
-                    TaperedRouteOverlay overlay = new TaperedRouteOverlay(arc, freq, routeColor, density);
-                    mapView.getOverlays().add(overlay);
+                    Polyline line = new Polyline(mapView);
+                    line.setPoints(arc);
+                    line.setColor(routeColor);
+                    line.setWidth(2.5f);
+                    line.setTitle(r.fromCode + " → " + r.toCode);
+                    mapView.getOverlays().add(line);
                 }
 
                 // Draw M3 circle markers on top (deduplicated by airport)
