@@ -15,7 +15,7 @@ public class AirportImporter {
     private static final String TAG = "AirportImporter";
     private static final String PREFS_NAME = "FlightStatsPrefs";
     private static final String KEY_AIRPORTS_DB_VERSION = "airports_db_version";
-    private static final int CURRENT_DB_VERSION = 4;
+    private static final int CURRENT_DB_VERSION = 5; // Bumped to force re-import
 
     public interface ImportCallback {
         void onComplete(int count);

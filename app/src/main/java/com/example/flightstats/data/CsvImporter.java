@@ -20,7 +20,7 @@ public class CsvImporter {
     private static final String PREFS_NAME = "FlightStatsPrefs";
     private static final String KEY_FLIGHTS_DB_VERSION = "flights_db_version";
     // Bump this whenever AppDatabase.version changes to force a re-import
-    private static final int CURRENT_DB_VERSION = 4;
+    private static final int CURRENT_DB_VERSION = 5; // Bumped to force re-import
 
     public interface ImportCallback {
         void onComplete(int count);
