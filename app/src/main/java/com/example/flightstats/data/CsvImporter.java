@@ -20,7 +20,7 @@ public class CsvImporter {
     private static final String PREFS_NAME = "FlightStatsPrefs";
     private static final String KEY_FLIGHTS_DB_VERSION = "flights_db_version";
     // Bump this whenever AppDatabase.version changes to force a re-import
-    private static final int CURRENT_DB_VERSION = 5; // Bumped to force re-import
+    private static final int CURRENT_DB_VERSION = 6; // Bumped to 6 to fix duplicates
 
     public interface ImportCallback {
         void onComplete(int count);
@@ -44,6 +44,7 @@ public class CsvImporter {
 
                 List<Flight> flights = parseCsv(context);
                 if (!flights.isEmpty()) {
+                    dao.deleteAll(); // Clear existing flights to prevent duplicates on forced re-imports
                     dao.insertAll(flights);
                     count = flights.size();
                 }

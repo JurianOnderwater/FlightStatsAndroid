@@ -23,6 +23,9 @@ public interface FlightDao {
     @Delete
     void deleteFlight(Flight flight);
 
+    @Query("DELETE FROM flights")
+    void deleteAll();
+
     @Query("SELECT * FROM flights ORDER BY date DESC")
     List<Flight> getAllFlights();
 
