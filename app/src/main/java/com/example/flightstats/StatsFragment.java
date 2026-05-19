@@ -49,6 +49,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.Executors;
+import java.util.Collections;
+import android.widget.HorizontalScrollView;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
 
 public class StatsFragment extends Fragment {
 
@@ -68,10 +72,22 @@ public class StatsFragment extends Fragment {
     private int[] dataByYear   = new int[0];
     private String[] yearLabels = new String[0];
 
+    private List<String> currentYearsInChips = new ArrayList<>();
+    private String selectedYear = String.valueOf(Calendar.getInstance().get(Calendar.YEAR));
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putString("selectedYear", selectedYear);
+    }
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
+        if (savedInstanceState != null) {
+            selectedYear = savedInstanceState.getString("selectedYear", String.valueOf(Calendar.getInstance().get(Calendar.YEAR)));
+        }
         root = inflater.inflate(R.layout.fragment_stats, container, false);
 
         barChart    = root.findViewById(R.id.bar_chart);
@@ -316,7 +332,40 @@ public class StatsFragment extends Fragment {
         if (!isAdded()) return;
         Executors.newSingleThreadExecutor().execute(() -> {
             AppDatabase db = AppDatabase.getDatabase(requireContext());
-            List<Flight> flights = db.flightDao().getAllFlights();
+            List<Flight> allFlights = db.flightDao().getAllFlights();
+
+            // Extract unique flight years dynamically from the full flight list
+            Set<String> yearsSet = new HashSet<>();
+            for (Flight f : allFlights) {
+                if (f.date != null && f.date.length() >= 4) {
+                    yearsSet.add(f.date.substring(0, 4));
+                }
+            }
+            // Always ensure the current calendar year is in the list
+            String currentCalendarYear = String.valueOf(Calendar.getInstance().get(Calendar.YEAR));
+            yearsSet.add(currentCalendarYear);
+
+            // Sort years in descending order
+            List<String> sortedYears = new ArrayList<>(yearsSet);
+            Collections.sort(sortedYears, Collections.reverseOrder());
+
+            // Prepare list with "All Time" at the top
+            List<String> displayYears = new ArrayList<>();
+            displayYears.add("All Time");
+            displayYears.addAll(sortedYears);
+
+            // Filter flights list according to the selected year
+            List<Flight> filteredFlights;
+            if (selectedYear == null || selectedYear.equals("All Time")) {
+                filteredFlights = allFlights;
+            } else {
+                filteredFlights = new ArrayList<>();
+                for (Flight f : allFlights) {
+                    if (f.date != null && f.date.startsWith(selectedYear)) {
+                        filteredFlights.add(f);
+                    }
+                }
+            }
 
             Set<String> airportSet = new HashSet<>(), routeSet = new HashSet<>(), countrySet = new HashSet<>();
             Map<String, Integer> airportCounts = new HashMap<>(), routeCounts = new HashMap<>();
@@ -331,7 +380,7 @@ public class StatsFragment extends Fragment {
 
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
 
-            for (Flight f : flights) {
+            for (Flight f : filteredFlights) {
                 totalKm += f.distance;
                 airportSet.add(f.origin);
                 airportSet.add(f.destination);
@@ -447,12 +496,13 @@ public class StatsFragment extends Fragment {
                 topRoutes.add(parts[0] + "  →  " + (parts.length > 1 ? parts[1] : "?") + "  (" + e.getValue() + "×)");
             }
 
-            final int finalFlights   = flights.size();
+            final int finalFlights   = filteredFlights.size();
             final int finalCountries = countrySet.size();
             final int finalAirports  = airportSet.size();
             final int finalRoutes    = routeSet.size();
             final double km = totalKm;
             final Flight bestFlight = longest;
+            final List<String> finalDisplayYears = displayYears;
 
             // Store chart arrays for toggle switching
             dataByMonth = byMonth;
@@ -462,6 +512,9 @@ public class StatsFragment extends Fragment {
 
             new Handler(Looper.getMainLooper()).post(() -> {
                 if (!isAdded() || root == null) return;
+
+                // Update dynamic year selection chips
+                updateYearChips(finalDisplayYears);
 
                 setText(R.id.stat_flights,   String.valueOf(finalFlights));
                 setText(R.id.stat_countries, String.valueOf(finalCountries));
@@ -477,6 +530,10 @@ public class StatsFragment extends Fragment {
                     setText(R.id.stat_longest_origin, bestFlight.origin);
                     setText(R.id.stat_longest_dest,   bestFlight.destination);
                     setText(R.id.stat_longest_detail, Math.round(bestFlight.distance) + " km  ·  " + bestFlight.date);
+                } else {
+                    setText(R.id.stat_longest_origin, "—");
+                    setText(R.id.stat_longest_dest,   "—");
+                    setText(R.id.stat_longest_detail, "");
                 }
 
                 int hours = (int)(km / 800.0);
@@ -486,6 +543,20 @@ public class StatsFragment extends Fragment {
                 populateList(R.id.list_top_airports, topAirports);
                 populateList(R.id.list_top_routes, topRoutes);
 
+                // Show or hide the Year toggle button on the patterns card based on selectedYear filter
+                boolean isAllTime = selectedYear == null || selectedYear.equals("All Time");
+                View btnByYear = root.findViewById(R.id.btn_by_year);
+                if (btnByYear != null) {
+                    if (isAllTime) {
+                        btnByYear.setVisibility(View.VISIBLE);
+                    } else {
+                        btnByYear.setVisibility(View.GONE);
+                        if (toggleGroup.getCheckedButtonId() == R.id.btn_by_year) {
+                            toggleGroup.check(R.id.btn_by_month);
+                        }
+                    }
+                }
+
                 // Refresh chart with currently selected tab
                 int checkedId = toggleGroup.getCheckedButtonId();
                 if (checkedId == R.id.btn_by_day)       showChartDay();
@@ -493,10 +564,83 @@ public class StatsFragment extends Fragment {
                 else                                     showChartMonth();
 
                 // Render Pie Chart
-                if (pieChart != null && !pieSlices.isEmpty()) {
+                if (pieChart != null) {
                     pieChart.setSlices(pieSlices);
                 }
             });
+        });
+    }
+
+    private void updateYearChips(List<String> displayYears) {
+        ChipGroup chipGroup = root.findViewById(R.id.chip_group_years);
+        if (chipGroup == null) return;
+
+        // Check if the displayed chips match the new years list
+        if (currentYearsInChips.equals(displayYears) && chipGroup.getChildCount() == displayYears.size()) {
+            ensureSelectedChipChecked(chipGroup);
+            return;
+        }
+
+        chipGroup.removeAllViews();
+        currentYearsInChips = new ArrayList<>(displayYears);
+
+        for (String year : displayYears) {
+            Chip chip = new Chip(requireContext());
+            chip.setText(year);
+            chip.setCheckable(true);
+            chip.setChecked(year.equals(selectedYear));
+
+            chip.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (isChecked) {
+                    selectedYear = year;
+                    centerChip(chip);
+                    loadStats();
+                }
+            });
+
+            chipGroup.addView(chip);
+
+            if (year.equals(selectedYear)) {
+                centerChip(chip);
+            }
+        }
+    }
+
+    private void ensureSelectedChipChecked(ChipGroup chipGroup) {
+        for (int i = 0; i < chipGroup.getChildCount(); i++) {
+            View child = chipGroup.getChildAt(i);
+            if (child instanceof Chip) {
+                Chip chip = (Chip) child;
+                String chipText = chip.getText().toString();
+                if (chipText.equals(selectedYear)) {
+                    if (!chip.isChecked()) {
+                        chip.setOnCheckedChangeListener(null);
+                        chip.setChecked(true);
+                        chip.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                            if (isChecked) {
+                                selectedYear = chipText;
+                                centerChip(chip);
+                                loadStats();
+                            }
+                        });
+                    }
+                    centerChip(chip);
+                    break;
+                }
+            }
+        }
+    }
+
+    private void centerChip(Chip chip) {
+        HorizontalScrollView scrollView = root.findViewById(R.id.scroll_year_chips);
+        if (scrollView == null || chip == null) return;
+
+        scrollView.post(() -> {
+            int chipLeft = chip.getLeft();
+            int chipWidth = chip.getWidth();
+            int scrollWidth = scrollView.getWidth();
+            int scrollX = chipLeft - (scrollWidth - chipWidth) / 2;
+            scrollView.smoothScrollTo(scrollX, 0);
         });
     }
 

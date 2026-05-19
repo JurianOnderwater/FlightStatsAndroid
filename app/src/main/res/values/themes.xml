@@ -1,11 +1,15 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.FlightStats" parent="Theme.Material3.DayNight.NoActionBar">
+    <!-- Common theme attributes that apply to both light and dark modes -->
+    <style name="Base.Theme.FlightStats.Common" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:navigationBarColor">?attr/colorSurface</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">?attr/isLightTheme</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">?attr/isLightTheme</item>
+        <item name="android:enforceNavigationBarContrast" tools:targetApi="q">false</item>
     </style>
+
+    <!-- Base application theme. -->
+    <style name="Base.Theme.FlightStats" parent="Base.Theme.FlightStats.Common" />
 
     <style name="Theme.FlightStats" parent="Base.Theme.FlightStats" />
 </resources>

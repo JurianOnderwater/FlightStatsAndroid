@@ -1,5 +1,6 @@
 package com.example.flightstats;
 
+import android.content.SharedPreferences;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
@@ -13,6 +14,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.fragment.app.Fragment;
 
 import com.example.flightstats.data.Airport;
@@ -20,6 +22,15 @@ import com.example.flightstats.data.AirportImporter;
 import com.example.flightstats.data.AppDatabase;
 import com.example.flightstats.data.CsvImporter;
 import com.example.flightstats.data.Flight;
+import com.google.android.material.button.MaterialButtonToggleGroup;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.slider.Slider;
+import com.google.android.material.textfield.TextInputEditText;
+
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.graphics.Insets;
 
 import org.osmdroid.config.Configuration;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
@@ -42,6 +53,17 @@ public class MapFragment extends Fragment {
     private MapView mapView;
     private TextView statFlights, statCountries, statAirports, statRoutes;
 
+    private MaterialCardView cardSettings;
+    private View settingsScrim;
+    private MaterialCardView btnProfile;
+    private TextInputEditText inputHometown;
+    private Slider sliderZoom;
+    private MaterialButtonToggleGroup toggleThemeGroup;
+    private MaterialButton btnThemeLight, btnThemeDark, btnThemeSystem;
+    private MaterialButton btnCancel, btnSave;
+
+    private boolean isInitialLoad = true;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -58,19 +80,131 @@ public class MapFragment extends Fragment {
         mapView.setMultiTouchControls(true);
         
         // Prevent infinite zooming and scrolling
-        mapView.setMinZoomLevel(3.0);
+        mapView.setMinZoomLevel(4.0);
         mapView.setMaxZoomLevel(12.0);
         mapView.setHorizontalMapRepetitionEnabled(false);
         mapView.setVerticalMapRepetitionEnabled(false);
         mapView.setScrollableAreaLimitDouble(new org.osmdroid.util.BoundingBox(85.0, 180.0, -85.0, -180.0));
 
-        mapView.getController().setZoom(3.0);
-        mapView.getController().setCenter(new GeoPoint(30.0, 15.0));
-
         statFlights   = view.findViewById(R.id.stat_flights);
         statCountries = view.findViewById(R.id.stat_countries);
         statAirports  = view.findViewById(R.id.stat_airports);
         statRoutes    = view.findViewById(R.id.stat_routes);
+
+        // Find Settings Views
+        btnProfile       = view.findViewById(R.id.btn_profile);
+        cardSettings     = view.findViewById(R.id.card_settings);
+        settingsScrim    = view.findViewById(R.id.settings_scrim);
+        inputHometown    = view.findViewById(R.id.input_hometown);
+        sliderZoom       = view.findViewById(R.id.slider_zoom);
+        toggleThemeGroup = view.findViewById(R.id.toggle_theme_group);
+        btnThemeLight    = view.findViewById(R.id.btn_theme_light);
+        btnThemeDark     = view.findViewById(R.id.btn_theme_dark);
+        btnThemeSystem   = view.findViewById(R.id.btn_theme_system);
+        btnCancel        = view.findViewById(R.id.btn_settings_cancel);
+        btnSave          = view.findViewById(R.id.btn_settings_save);
+
+        View profileContainer = view.findViewById(R.id.profile_container);
+        if (profileContainer != null) {
+            ViewCompat.setOnApplyWindowInsetsListener(profileContainer, (v, insets) -> {
+                Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+                Insets displayCutout = insets.getInsets(WindowInsetsCompat.Type.displayCutout());
+                
+                int topInset = Math.max(systemBars.top, displayCutout.top);
+                int endInset = Math.max(systemBars.right, displayCutout.right);
+                int startInset = Math.max(systemBars.left, displayCutout.left);
+                
+                int densityPadding = (int) (16 * v.getResources().getDisplayMetrics().density);
+                
+                v.setPadding(densityPadding + startInset, densityPadding + topInset, densityPadding + endInset, densityPadding);
+                return insets;
+            });
+        }
+
+        // Load SharedPreferences to populate the overlay fields
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
+        String hometownPref = prefs.getString("hometown", "AMS").trim().toUpperCase();
+        float zoomPref = Math.max(4.0f, prefs.getFloat("default_zoom", 4.5f));
+        int themePref = prefs.getInt("theme_mode", 2); // 0 = Light, 1 = Dark, 2 = System
+
+        inputHometown.setText(hometownPref);
+        sliderZoom.setValue(zoomPref);
+        if (themePref == 0) {
+            toggleThemeGroup.check(R.id.btn_theme_light);
+        } else if (themePref == 1) {
+            toggleThemeGroup.check(R.id.btn_theme_dark);
+        } else {
+            toggleThemeGroup.check(R.id.btn_theme_system);
+        }
+
+        // Tap profile button to open floating Settings Card
+        btnProfile.setOnClickListener(v -> {
+            cardSettings.setVisibility(View.VISIBLE);
+            settingsScrim.setVisibility(View.VISIBLE);
+        });
+
+        // Click listener to cancel/dismiss settings
+        View.OnClickListener dismissListener = v -> {
+            cardSettings.setVisibility(View.GONE);
+            settingsScrim.setVisibility(View.GONE);
+            // Reset overlay state back to saved preference values
+            String currHometown = prefs.getString("hometown", "AMS").trim().toUpperCase();
+            float currZoom = Math.max(4.0f, prefs.getFloat("default_zoom", 4.5f));
+            int currTheme = prefs.getInt("theme_mode", 2);
+            inputHometown.setText(currHometown);
+            sliderZoom.setValue(currZoom);
+            if (currTheme == 0) {
+                toggleThemeGroup.check(R.id.btn_theme_light);
+            } else if (currTheme == 1) {
+                toggleThemeGroup.check(R.id.btn_theme_dark);
+            } else {
+                toggleThemeGroup.check(R.id.btn_theme_system);
+            }
+        };
+
+        btnCancel.setOnClickListener(dismissListener);
+        settingsScrim.setOnClickListener(dismissListener);
+
+        // Click listener to save settings
+        btnSave.setOnClickListener(v -> {
+            String newHometown = inputHometown.getText().toString().trim().toUpperCase();
+            if (newHometown.length() != 3) {
+                inputHometown.setError("Please enter a valid 3-letter IATA code");
+                return;
+            }
+            float newZoom = sliderZoom.getValue();
+            int selectedThemeId = toggleThemeGroup.getCheckedButtonId();
+            int newThemeMode = 2; // System Default
+            if (selectedThemeId == R.id.btn_theme_light) {
+                newThemeMode = 0;
+            } else if (selectedThemeId == R.id.btn_theme_dark) {
+                newThemeMode = 1;
+            }
+
+            // Save to preferences
+            prefs.edit()
+                .putString("hometown", newHometown)
+                .putFloat("default_zoom", newZoom)
+                .putInt("theme_mode", newThemeMode)
+                .apply();
+
+            // Dismiss overlay
+            cardSettings.setVisibility(View.GONE);
+            settingsScrim.setVisibility(View.GONE);
+
+            // Apply theme changes dynamically
+            if (newThemeMode == 0) {
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+            } else if (newThemeMode == 1) {
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+            } else {
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
+            }
+
+            // Force map to re-center and apply new zoom settings
+            isInitialLoad = true;
+            loadMapAndStats();
+        });
 
         // Sequential: import airports → import flights → render
         AirportImporter.importIfNeeded(requireContext(), ignored ->
@@ -87,8 +221,18 @@ public class MapFragment extends Fragment {
     }
 
     private void loadMapAndStats() {
+        if (!isAdded()) return;
+        android.content.Context context = getContext();
+        if (context == null) return;
+
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        String hometown = prefs.getString("hometown", "AMS").trim().toUpperCase();
+        float defaultZoom = Math.max(4.0f, prefs.getFloat("default_zoom", 4.5f));
+
         Executors.newSingleThreadExecutor().execute(() -> {
-            AppDatabase db = AppDatabase.getDatabase(requireContext());
+            android.content.Context bgContext = getContext();
+            if (bgContext == null) return;
+            AppDatabase db = AppDatabase.getDatabase(bgContext);
             List<Flight> flights = db.flightDao().getAllFlights();
 
             Set<String> airportSet = new HashSet<>();
@@ -127,6 +271,22 @@ public class MapFragment extends Fragment {
             int finalRoutes    = routeDataMap.size();
             int finalCountries = countrySet.size();
 
+            // Find hometown airport details
+            Airport hometownAirport = db.airportDao().getByIata(hometown);
+            GeoPoint centerPoint = null;
+            if (hometownAirport != null) {
+                centerPoint = new GeoPoint(hometownAirport.lat, hometownAirport.lng);
+            } else {
+                // Default fallback: AMS if hometown is not found
+                Airport amsAirport = db.airportDao().getByIata("AMS");
+                if (amsAirport != null) {
+                    centerPoint = new GeoPoint(amsAirport.lat, amsAirport.lng);
+                } else {
+                    centerPoint = new GeoPoint(52.3105, 4.7683); // AMS raw coords fallback
+                }
+            }
+            final GeoPoint finalCenterPoint = centerPoint;
+
             // Resolve theme colorPrimary on background thread is unsafe — pass map to UI thread
             final Map<String, RouteData> finalRouteDataMap = routeDataMap;
 
@@ -159,6 +319,26 @@ public class MapFragment extends Fragment {
                 for (RouteData r : finalRouteDataMap.values()) {
                     drawMarker(r.from, r.fromCode, drawnAirports);
                     drawMarker(r.to,   r.toCode,   drawnAirports);
+                }
+
+                // If it's the initial load, center and zoom the map
+                if (isInitialLoad) {
+                    isInitialLoad = false;
+                    if (mapView.getWidth() > 0 && mapView.getHeight() > 0) {
+                        mapView.getController().setZoom((double) defaultZoom);
+                        mapView.getController().setCenter(finalCenterPoint);
+                    } else {
+                        mapView.getViewTreeObserver().addOnGlobalLayoutListener(new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
+                            @Override
+                            public void onGlobalLayout() {
+                                mapView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                                if (isAdded() && mapView != null) {
+                                    mapView.getController().setZoom((double) defaultZoom);
+                                    mapView.getController().setCenter(finalCenterPoint);
+                                }
+                            }
+                        });
+                    }
                 }
 
                 mapView.invalidate();
@@ -194,6 +374,12 @@ public class MapFragment extends Fragment {
 
     @Override public void onResume() { super.onResume(); if (mapView != null) mapView.onResume(); }
     @Override public void onPause()  { super.onPause();  if (mapView != null) mapView.onPause(); }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        isInitialLoad = true;
+    }
 
     private static class RouteData {
         GeoPoint from, to;
