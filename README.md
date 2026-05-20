@@ -1,39 +1,67 @@
 # FlightStats Android
 
-FlightStats is a beautifully crafted, native Android application that serves as a personal logbook and statistics dashboard for all your flights. Designed with Android's modern Material 3 guidelines and a focus on sleek, dynamic aesthetics, this app tracks where you've been and visualizes your travel footprint.
+FlightStats is a native Android application designed as a personal logbook, interactive flight map, and comprehensive statistics dashboard. Built entirely using modern Material 3 guidelines and native Android architecture, the application enables travelers to digitize, analyze, and visualize their flight history completely offline.
 
-## ✨ Features
+## Core Features
 
-- **Comprehensive Dashboard**: View in-depth statistics about your flights, including total distance traveled, longest flights, and time spent aloft.
-- **Smart Boarding Pass Scanner**: Instantly add new flights by scanning the barcode or QR code on your boarding pass (or uploading a screenshot from your gallery). Powered by Google ML Kit, the app automatically extracts origin, destination, flight number, airline, seat, and class directly from standard IATA BCBP formats.
-- **Global Footprint**: A custom-built, full-bleed, edge-to-edge "Donut Chart" widget visually represents the distribution of countries you've visited, mapping your personal footprint across the globe.
-- **Interactive Map**: View your flights plotted on a beautiful world map featuring custom geometric (9-sided scallop) markers.
-- **Material You Dynamic Theming**: Fully supports Android 12+ wallpaper-based dynamic coloring. The entire app seamlessly adapts to your system theme.
-- **Fully Offline**: Powered locally via a Room Database, so you can always view and log your flights, even at 35,000 feet.
+### On-Device AI Travel Summaries
+- Powered by the official Google ML Kit GenAI Prompt API for on-device Gemini Nano text generation.
+- Generates high-quality, grounded summaries of yearly and all-time travel metrics directly on the device.
+- Uses strict prompt context and grounded metrics (chronological flights, country lists, and total distance) to eliminate model hallucination and produce precise, fluff-free travel summaries.
+- Features a collapsible travel summary interface with a custom, programmatic color fade matching the Material 3 surface theme.
 
-## 🛠 Tech Stack
+### Intelligent Boarding Pass Scanner
+- Instantly parses standard IATA BCBP (Bar Coded Boarding Pass) barcodes and QR codes from physical passes or gallery screenshots.
+- Utilizes Google ML Kit Barcode Scanning and CameraX for reliable, low-latency character extraction.
+- Automatically populates origin, destination, flight number, airline, seat, and class metrics.
 
-- **UI & Layouts**: XML layouts leveraging the `Material 3` (v1.12.0) components and tokens.
-- **Charting**: A hybrid of [MPAndroidChart](https://github.com/PhilJay/MPAndroidChart) and bespoke custom `View` renderers (e.g., `EdgeToEdgePieView`) to ensure charts look sharp and flush within Material cards.
-- **Scanner Integration**: `CameraX` and `Google ML Kit Barcode Scanning`.
-- **Local Persistence**: `Room Database`.
+### Interactive Flight Mapping
+- Leverages OpenStreetMap (osmdroid) to project high-fidelity flight routes and lines.
+- Visualizes flight paths with thematic polyline coordinates.
+- Integrates interactive airport markers, dynamic map overlays, and robust performance optimization to support large flight histories.
 
-## 🚀 Getting Started
+### Advanced Visual Analytics
+- Bespoke custom layouts including a modern, flush `EdgeToEdgePieView` for country-level statistics.
+- Seamlessly integrates MPAndroidChart widgets to depict monthly, daily, and yearly flight distributions.
+- Calculates detailed comparisons such as circumnavigation metrics, distance to the moon, hours aloft, and longest flights.
+
+### Material 3 Expressive UI
+- Implements comprehensive Edge-to-Edge window insets for seamless modern layout navigation.
+- Features an expressive settings control center supporting dynamic light/dark mode switching and custom Material 3 color templates.
+- Built-in automatic navigation transitions and elegant cards.
+
+### High-Performance Local Storage
+- Backed by an offline-first Room Database architecture.
+- Full transactional safety and query indexing to ensure near-zero database latency.
+- Completely functional without any network access or server reliance.
+
+## Technical Specifications
+
+- **Build Pipeline**: Gradle Version Catalogs (Kotlin DSL).
+- **Minimum SDK**: 31 (Android 12)
+- **Target SDK**: 36 (Android 15 QPR3)
+- **UI Framework**: XML layout binding with Material Components for Android (v1.12.0) and Material Design 3 tokens.
+- **Database Engine**: Room Persistence Library.
+- **AI Engine**: Google ML Kit GenAI Prompt SDK (Gemini Nano).
+- **Vision APIs**: CameraX and Google ML Kit Barcode Scanning SDK.
+- **Mapping & Charts**: Osmdroid, MPAndroidChart, and custom Canvas graphics libraries.
+
+## Getting Started
 
 ### Prerequisites
-- Android Studio (Koala or newer recommended)
-- Minimum SDK: 26 (Android 8.0 Oreo)
-- Target SDK: 34 (Android 14)
+- Android Studio (Ladybug or newer recommended)
+- Java Development Kit (JDK) 17 or higher
+- Android SDK Build-Tools matching the configured API compile target
 
 ### Installation
-1. Clone this repository:
+1. Clone the repository:
    ```bash
    git clone https://github.com/JurianOnderwater/FlightStatsAndroid.git
    ```
-2. Open the project in Android Studio.
-3. Sync project with Gradle files.
-4. Run the app on a connected device or emulator.
+2. Open the cloned folder in Android Studio.
+3. Sync the project with the Gradle build files.
+4. Build and deploy the application to a connected device or emulator running Android 12 (API 31) or newer.
 
-## 📦 Releases
+## Releases and Distribution
 
-You can download the latest pre-compiled debug APK from the [Releases page](https://github.com/JurianOnderwater/FlightStatsAndroid/releases).
+Pre-compiled binary assets are available for testing. You can download the latest signed debug or release APK directly from the [Releases page](https://github.com/JurianOnderwater/FlightStatsAndroid/releases).
