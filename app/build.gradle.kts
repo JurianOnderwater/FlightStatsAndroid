@@ -12,7 +12,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.flightstats"
-        minSdk = 29
+        minSdk = 31
         targetSdk = 36
         versionCode = 2
         versionName = "1.1.0-beta"
@@ -51,6 +51,7 @@ dependencies {
     implementation(libs.camerax.lifecycle)
     implementation(libs.camerax.view)
     implementation(libs.mlkit.barcode)
+    implementation("com.google.mlkit:genai-prompt:1.0.0-beta2")
     testImplementation(libs.junit)
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)

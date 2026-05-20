@@ -33,6 +33,7 @@
         </HorizontalScrollView>
 
         <androidx.core.widget.NestedScrollView
+            android:id="@+id/scroll_stats_content"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
@@ -126,6 +127,101 @@
                                 android:textColor="?attr/colorOnPrimaryContainer" android:alpha="0.7"/>
                         </LinearLayout>
                     </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ═══════════════════════════════════════════
+                 CARD 1.5: TRAVEL STORIES — Diagonal shape, collapsible
+                 ═══════════════════════════════════════════ -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_story_stats"
+                style="@style/Widget.Material3.CardView.Elevated"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+                app:cardElevation="2dp"
+                app:strokeWidth="0dp"
+                app:shapeAppearance="@style/ShapeAppearance.FlightStats.Diagonal"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <!-- Header: Icon + Year Title -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="12dp">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_book"
+                            app:tint="?attr/colorPrimary"
+                            android:layout_marginEnd="8dp" />
+
+                        <TextView
+                            android:id="@+id/story_title_stats"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="2026 Travel Story"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:textColor="?attr/colorPrimary" />
+                    </LinearLayout>
+
+                    <!-- Collapsible text container -->
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+
+                        <TextView
+                            android:id="@+id/story_text_stats"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textSize="14sp"
+                            android:lineSpacingMultiplier="1.25"
+                            android:textColor="?attr/colorOnSurface"
+                            android:fontFamily="serif" />
+
+                        <View
+                            android:id="@+id/view_fade_overlay"
+                            android:layout_width="match_parent"
+                            android:layout_height="60dp"
+                            android:layout_gravity="bottom"
+                            android:visibility="gone" />
+
+                    </FrameLayout>
+
+                    <!-- Expand / Collapse Button -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_expand_story"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:text="Read Travel Summary"
+                        app:icon="@drawable/ic_book"
+                        android:layout_marginTop="8dp"
+                        android:visibility="gone" />
+
+                    <!-- Regenerate Individual Story Button -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_regenerate_story_individual"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:text="Generate AI Summary"
+                        app:icon="@drawable/ic_book"
+                        android:layout_marginTop="8dp"
+                        android:visibility="gone" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -508,14 +604,6 @@
     </androidx.core.widget.NestedScrollView>
     </LinearLayout>
 
-    <!-- Edit Dashboard FAB -->
-    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-        android:id="@+id/fab_edit_stats"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="16dp"
-        android:text="Edit"
-        app:icon="@android:drawable/ic_menu_edit"/>
+
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

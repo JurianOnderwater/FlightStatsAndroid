@@ -3,15 +3,20 @@ package com.example.flightstats;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.preference.PreferenceManager;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.ProgressBar;
+import android.view.Gravity;
+import androidx.appcompat.app.AlertDialog;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -46,6 +51,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.Executors;
@@ -53,6 +59,13 @@ import java.util.Collections;
 import android.widget.HorizontalScrollView;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
+
+import com.google.mlkit.genai.prompt.java.GenerativeModelFutures;
+import com.google.mlkit.genai.prompt.Generation;
+import com.google.mlkit.genai.prompt.GenerateContentRequest;
+import com.google.mlkit.genai.prompt.TextPart;
+import com.google.mlkit.genai.prompt.GenerateContentResponse;
+import com.google.common.util.concurrent.ListenableFuture;
 
 public class StatsFragment extends Fragment {
 
@@ -65,6 +78,33 @@ public class StatsFragment extends Fragment {
     private BarChart barChart;
     private EdgeToEdgePieView pieChart;
     private MaterialButtonToggleGroup toggleGroup;
+
+    // Story Card views
+    private View cardStoryStats;
+    private TextView storyTitleStats;
+    private TextView storyTextStats;
+    private View viewFadeOverlay;
+    private com.google.android.material.button.MaterialButton btnExpandStory;
+    private com.google.android.material.button.MaterialButton btnRegenerateStoryIndividual;
+    private androidx.core.widget.NestedScrollView scrollStatsContent;
+    private String lastSelectedYear = null;
+    private boolean isStoryExpanded = false;
+
+    private android.text.Spanned parseMarkdown(String markdown) {
+        if (markdown == null) return new android.text.SpannableString("");
+        String escaped = markdown
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;");
+        String boldParsed = escaped.replaceAll("\\*\\*(.*?)\\*\\*", "<b>$1</b>");
+        String italicParsed = boldParsed.replaceAll("\\*(.*?)\\*", "<i>$1</i>");
+        String formatted = italicParsed.replace("\n", "<br/>");
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            return android.text.Html.fromHtml(formatted, android.text.Html.FROM_HTML_MODE_LEGACY);
+        } else {
+            return android.text.Html.fromHtml(formatted);
+        }
+    }
 
     // Precomputed chart data (set on background thread, read on main)
     private int[] dataByMonth  = new int[12];
@@ -94,6 +134,54 @@ public class StatsFragment extends Fragment {
         pieChart    = root.findViewById(R.id.pie_chart);
         toggleGroup = root.findViewById(R.id.toggle_chart_type);
 
+        // Bind Story Card views
+        cardStoryStats      = root.findViewById(R.id.card_story_stats);
+        storyTitleStats     = root.findViewById(R.id.story_title_stats);
+        storyTextStats      = root.findViewById(R.id.story_text_stats);
+        viewFadeOverlay     = root.findViewById(R.id.view_fade_overlay);
+        btnExpandStory      = root.findViewById(R.id.btn_expand_story);
+        btnRegenerateStoryIndividual = root.findViewById(R.id.btn_regenerate_story_individual);
+        scrollStatsContent  = root.findViewById(R.id.scroll_stats_content);
+
+        if (btnExpandStory != null) {
+            btnExpandStory.setOnClickListener(v -> {
+                isStoryExpanded = !isStoryExpanded;
+                updateStoryExpandedState();
+                if (!isStoryExpanded && scrollStatsContent != null) {
+                    cardStoryStats.post(() -> scrollStatsContent.smoothScrollTo(0, cardStoryStats.getTop()));
+                }
+            });
+        }
+
+        // Set up individual year regeneration click listener
+        btnRegenerateStoryIndividual.setOnClickListener(v -> {
+            LinearLayout layout = new LinearLayout(requireContext());
+            layout.setOrientation(LinearLayout.HORIZONTAL);
+            layout.setGravity(Gravity.CENTER_VERTICAL);
+            int padding = (int) (24 * getResources().getDisplayMetrics().density);
+            layout.setPadding(padding, padding, padding, padding);
+
+            ProgressBar progressBar = new ProgressBar(requireContext());
+            progressBar.setIndeterminate(true);
+            layout.addView(progressBar);
+
+            final TextView textView = new TextView(requireContext());
+            textView.setText("Initializing on-device AI Core...");
+            textView.setTextSize(14f);
+            textView.setTextAppearance(requireContext(), com.google.android.material.R.style.TextAppearance_Material3_BodyMedium);
+            textView.setPadding((int) (16 * getResources().getDisplayMetrics().density), 0, 0, 0);
+            layout.addView(textView);
+
+            final AlertDialog dialog = new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Gemini Nano On-Device AI")
+                .setView(layout)
+                .setCancelable(false)
+                .create();
+            dialog.show();
+
+            regenerateStoryWithAI(dialog, textView);
+        });
+
         setupChart();
 
         toggleGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
@@ -107,7 +195,6 @@ public class StatsFragment extends Fragment {
         applyCardVisibility();
         loadStats();
 
-        root.findViewById(R.id.fab_edit_stats).setOnClickListener(v -> showEditDialog());
         return root;
     }
 
@@ -330,6 +417,11 @@ public class StatsFragment extends Fragment {
 
     private void loadStats() {
         if (!isAdded()) return;
+        if (lastSelectedYear == null || !lastSelectedYear.equals(selectedYear)) {
+            lastSelectedYear = selectedYear;
+            isStoryExpanded = false;
+        }
+
         Executors.newSingleThreadExecutor().execute(() -> {
             AppDatabase db = AppDatabase.getDatabase(requireContext());
             List<Flight> allFlights = db.flightDao().getAllFlights();
@@ -372,6 +464,11 @@ public class StatsFragment extends Fragment {
             Map<String, Integer> countryCounts = new HashMap<>();
             double totalKm = 0;
             Flight longest = null;
+
+            int springFlights = 0; // March, April, May
+            int summerFlights = 0; // June, July, August
+            int autumnFlights = 0; // September, October, November
+            int winterFlights = 0; // December, January, February
 
             // Chart accumulators
             int[] byMonth = new int[12];
@@ -429,6 +526,22 @@ public class StatsFragment extends Fragment {
                     try {
                         int year = Integer.parseInt(f.date.substring(0, 4));
                         byYearMap.merge(year, 1, Integer::sum);
+                    } catch (NumberFormatException ignored) {}
+                }
+
+                // Seasons breakdown
+                if (f.date != null && f.date.length() >= 7) {
+                    try {
+                        int month = Integer.parseInt(f.date.substring(5, 7)) - 1;
+                        if (month == Calendar.MARCH || month == Calendar.APRIL || month == Calendar.MAY) {
+                            springFlights++;
+                        } else if (month == Calendar.JUNE || month == Calendar.JULY || month == Calendar.AUGUST) {
+                            summerFlights++;
+                        } else if (month == Calendar.SEPTEMBER || month == Calendar.OCTOBER || month == Calendar.NOVEMBER) {
+                            autumnFlights++;
+                        } else {
+                            winterFlights++;
+                        }
                     } catch (NumberFormatException ignored) {}
                 }
             }
@@ -504,6 +617,26 @@ public class StatsFragment extends Fragment {
             final Flight bestFlight = longest;
             final List<String> finalDisplayYears = displayYears;
 
+            String topAirport = "N/A";
+            int topAirportVal = 0;
+            if (!sortedAirports.isEmpty()) {
+                topAirport = sortedAirports.get(0).getKey();
+                topAirportVal = sortedAirports.get(0).getValue();
+            }
+
+            String topRoute = "N/A";
+            int topRouteVal = 0;
+            if (!sortedRoutes.isEmpty()) {
+                topRoute = sortedRoutes.get(0).getKey().replace("-", " ↔ ");
+                topRouteVal = sortedRoutes.get(0).getValue();
+            }
+            SharedPreferences settingsPrefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
+            String savedStory = settingsPrefs.getString("saved_story_" + selectedYear, null);
+            final boolean hasSavedStory = savedStory != null && !savedStory.isEmpty();
+            final String storyTextContent = hasSavedStory ? savedStory : null;
+
+            final boolean aiOverviewsEnabled = settingsPrefs.getBoolean("enable_ai_overviews", true);
+
             // Store chart arrays for toggle switching
             dataByMonth = byMonth;
             dataByDay   = byDay;
@@ -566,6 +699,52 @@ public class StatsFragment extends Fragment {
                 // Render Pie Chart
                 if (pieChart != null) {
                     pieChart.setSlices(pieSlices);
+                }
+
+                // Show or hide collapsible story card dynamically
+                if (aiOverviewsEnabled && finalFlights > 0 && cardStoryStats != null) {
+                    cardStoryStats.setVisibility(View.VISIBLE);
+                    storyTitleStats.setText(selectedYear.equals("All Time") ? "Travel Summary" : selectedYear + " Travel Summary");
+                    
+                    if (hasSavedStory) {
+                        storyTextStats.setVisibility(View.VISIBLE);
+                        storyTextStats.setText(parseMarkdown(storyTextContent));
+                        
+                        // Set up gradient overlay color based on the card background theme color
+                        if (viewFadeOverlay != null) {
+                            int surfaceColor = resolveColor(com.google.android.material.R.attr.colorSurfaceContainerHigh);
+                            GradientDrawable gd = new GradientDrawable(
+                                    GradientDrawable.Orientation.TOP_BOTTOM,
+                                    new int[] { Color.TRANSPARENT, surfaceColor }
+                            );
+                            viewFadeOverlay.setBackground(gd);
+                        }
+
+                        if (btnRegenerateStoryIndividual != null) {
+                            btnRegenerateStoryIndividual.setText("Regenerate Summary");
+                        }
+
+                        // Apply the collapsed/expanded state
+                        updateStoryExpandedState();
+                        
+                        if (btnExpandStory != null) {
+                            btnExpandStory.setVisibility(View.VISIBLE);
+                        }
+                    } else {
+                        storyTextStats.setVisibility(View.GONE);
+                        if (viewFadeOverlay != null) {
+                            viewFadeOverlay.setVisibility(View.GONE);
+                        }
+                        if (btnExpandStory != null) {
+                            btnExpandStory.setVisibility(View.GONE);
+                        }
+                        if (btnRegenerateStoryIndividual != null) {
+                            btnRegenerateStoryIndividual.setText("Generate AI Summary");
+                            btnRegenerateStoryIndividual.setVisibility(View.VISIBLE);
+                        }
+                    }
+                } else if (cardStoryStats != null) {
+                    cardStoryStats.setVisibility(View.GONE);
                 }
             });
         });
@@ -716,5 +895,133 @@ public class StatsFragment extends Fragment {
         TypedValue tv = new TypedValue();
         requireContext().getTheme().resolveAttribute(attr, tv, true);
         return tv.data;
+    }
+
+    private void updateStoryExpandedState() {
+        if (storyTextStats == null || btnExpandStory == null || viewFadeOverlay == null) return;
+        if (isStoryExpanded) {
+            storyTextStats.setMaxLines(Integer.MAX_VALUE);
+            viewFadeOverlay.setVisibility(View.GONE);
+            btnExpandStory.setText("Show Less");
+            if (btnRegenerateStoryIndividual != null) {
+                btnRegenerateStoryIndividual.setVisibility(View.VISIBLE);
+            }
+        } else {
+            storyTextStats.setMaxLines(3);
+            viewFadeOverlay.setVisibility(View.VISIBLE);
+            btnExpandStory.setText("Read Travel Summary");
+            if (btnRegenerateStoryIndividual != null) {
+                btnRegenerateStoryIndividual.setVisibility(View.GONE);
+            }
+        }
+    }
+
+    private void regenerateStoryWithAI(androidx.appcompat.app.AlertDialog dialog, TextView textView) {
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                AppDatabase db = AppDatabase.getDatabase(requireContext());
+                List<Flight> allFlights = db.flightDao().getAllFlights();
+                List<Flight> filteredFlights;
+                if (selectedYear == null || selectedYear.equals("All Time")) {
+                    filteredFlights = allFlights;
+                } else {
+                    filteredFlights = new ArrayList<>();
+                    for (Flight f : allFlights) {
+                        if (f.date != null && f.date.startsWith(selectedYear)) {
+                            filteredFlights.add(f);
+                        }
+                    }
+                }
+                
+                // Sort by date so flight directions are in chronological order
+                filteredFlights.sort((a, b) -> {
+                    if (a.date == null) return -1;
+                    if (b.date == null) return 1;
+                    return a.date.compareTo(b.date);
+                });
+
+                int flights = filteredFlights.size();
+                double km = 0;
+                Set<String> countries = new HashSet<>();
+                List<String> trips = new ArrayList<>();
+                for (Flight f : filteredFlights) {
+                    km += f.distance;
+                    String originName = f.origin;
+                    String destName = f.destination;
+                    Airport o = db.airportDao().getByIata(f.origin);
+                    if (o != null) {
+                        countries.add(o.country);
+                        if (o.city != null && !o.city.isEmpty()) originName = o.city;
+                    }
+                    Airport d = db.airportDao().getByIata(f.destination);
+                    if (d != null) {
+                        countries.add(d.country);
+                        if (d.city != null && !d.city.isEmpty()) destName = d.city;
+                    }
+                    trips.add(originName + " → " + destName);
+                }
+
+                String countryList = android.text.TextUtils.join(", ", countries);
+                String tripList = android.text.TextUtils.join("; ", trips);
+
+                String prompt = "Write a short travel summary for " + selectedYear + ", addressing the reader as 'you'. " +
+                    "Flowing prose only, no bullet lists. Max 2 short paragraphs. " +
+                    "Stick to the facts below — do not invent destinations or activities. " +
+                    "Stats: " + flights + " flights, " + (int)km + " km total. " +
+                    "Countries: " + countryList + ". " +
+                    "Flights in order: " + tripList + ". " +
+                    "Group legs into trips where logical. Bold place names and key numbers. No emojis.";
+
+                GenerativeModelFutures generativeModelFutures = GenerativeModelFutures.from(Generation.INSTANCE.getClient());
+
+                GenerateContentRequest.Builder requestBuilder = new GenerateContentRequest.Builder(new TextPart(prompt));
+                requestBuilder.setTemperature(0.7f);
+                requestBuilder.setMaxOutputTokens(256);
+                GenerateContentRequest request = requestBuilder.build();
+                
+                ListenableFuture<GenerateContentResponse> future = generativeModelFutures.generateContent(request);
+                
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    textView.setText("Generating summary with Gemini Nano...");
+                });
+                
+                com.google.common.util.concurrent.Futures.addCallback(future, new com.google.common.util.concurrent.FutureCallback<GenerateContentResponse>() {
+                    @Override
+                    public void onSuccess(GenerateContentResponse result) {
+                        String generatedStory = result.getCandidates().get(0).getText();
+                        SharedPreferences settingsPrefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
+                        settingsPrefs.edit().putString("saved_story_" + selectedYear, generatedStory).apply();
+                        
+                        new Handler(Looper.getMainLooper()).post(() -> {
+                            dialog.dismiss();
+                            loadStats();
+                        });
+                    }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+                        fallbackToOrganic(dialog, t.getMessage() != null ? t.getMessage() : t.toString());
+                    }
+                }, Executors.newSingleThreadExecutor());
+
+            } catch (Exception e) {
+                fallbackToOrganic(dialog, e.getMessage() != null ? e.getMessage() : e.toString());
+            }
+        });
+    }
+
+    private void fallbackToOrganic(androidx.appcompat.app.AlertDialog dialog, String errorMsg) {
+        SharedPreferences settingsPrefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
+        int currentVersion = settingsPrefs.getInt("story_regen_version_" + selectedYear, 0);
+        settingsPrefs.edit().putInt("story_regen_version_" + selectedYear, currentVersion + 1).apply();
+        settingsPrefs.edit().remove("saved_story_" + selectedYear).apply();
+        
+        new Handler(Looper.getMainLooper()).post(() -> {
+            dialog.dismiss();
+            if (getView() != null && errorMsg != null) {
+                com.google.android.material.snackbar.Snackbar.make(getView(), "AI Generation error: " + errorMsg, com.google.android.material.snackbar.Snackbar.LENGTH_LONG).show();
+            }
+            loadStats();
+        });
     }
 }
