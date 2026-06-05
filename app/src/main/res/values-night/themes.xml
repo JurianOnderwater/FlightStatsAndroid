@@ -2,6 +2,38 @@
     <!-- Base application theme. -->
     <style name="Base.Theme.FlightStats" parent="Base.Theme.FlightStats.Common">
         <!-- Customize your dark theme here. -->
-        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+        <!-- Primary (Indigo) -->
+        <item name="colorPrimary">#818CF8</item>
+        <item name="colorOnPrimary">#1E1B4B</item>
+        <item name="colorPrimaryContainer">#312E81</item>
+        <item name="colorOnPrimaryContainer">#E0E7FF</item>
+
+        <!-- Secondary (Sky Blue) -->
+        <item name="colorSecondary">#38BDF8</item>
+        <item name="colorOnSecondary">#0C4A6E</item>
+        <item name="colorSecondaryContainer">#0369A1</item>
+        <item name="colorOnSecondaryContainer">#E0F2FE</item>
+
+        <!-- Tertiary (Amber) -->
+        <item name="colorTertiary">#FBBF24</item>
+        <item name="colorOnTertiary">#451A03</item>
+        <item name="colorTertiaryContainer">#78350F</item>
+        <item name="colorOnTertiaryContainer">#FEF3C7</item>
+
+        <!-- Neutral / Surface colors -->
+        <item name="android:colorBackground">#0F172A</item>
+        <item name="colorOnBackground">#F8FAFC</item>
+        <item name="colorSurface">#1E293B</item>
+        <item name="colorOnSurface">#F8FAFC</item>
+        <item name="colorSurfaceVariant">#334155</item>
+        <item name="colorOnSurfaceVariant">#94A3B8</item>
+        <item name="colorOutline">#475569</item>
+        <item name="colorOutlineVariant">#334155</item>
+
+        <!-- Surface Container variants for M3 dark mode -->
+        <item name="colorSurfaceContainer">#1E293B</item>
+        <item name="colorSurfaceContainerLow">#0F172A</item>
+        <item name="colorSurfaceContainerHigh">#334155</item>
+        <item name="colorSurfaceContainerHighest">#475569</item>
     </style>
 </resources>

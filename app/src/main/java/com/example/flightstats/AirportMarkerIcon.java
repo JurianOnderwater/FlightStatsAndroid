@@ -26,7 +26,7 @@ public class AirportMarkerIcon {
         Canvas canvas = new Canvas(bmp);
 
         TypedValue tv = new TypedValue();
-        ctx.getTheme().resolveAttribute(com.google.android.material.R.attr.colorPrimary, tv, true);
+        ctx.getTheme().resolveAttribute(androidx.appcompat.R.attr.colorPrimary, tv, true);
         int colorPrimary = tv.data;
         ctx.getTheme().resolveAttribute(com.google.android.material.R.attr.colorOnPrimary, tv, true);
         int colorOnPrimary = tv.data;

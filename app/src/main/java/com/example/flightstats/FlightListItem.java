@@ -24,9 +24,6 @@ public class FlightListItem {
     public String destCountry;
 
     public static String countryToFlag(String isoCode) {
-        if (isoCode == null || isoCode.length() < 2) return "";
-        int first  = Character.codePointAt(isoCode.toUpperCase(), 0) - 'A' + 0x1F1E6;
-        int second = Character.codePointAt(isoCode.toUpperCase(), 1) - 'A' + 0x1F1E6;
-        return new String(Character.toChars(first)) + new String(Character.toChars(second));
+        return "";
     }
 }

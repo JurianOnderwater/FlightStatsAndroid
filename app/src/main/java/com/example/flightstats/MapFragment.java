@@ -67,7 +67,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 public class MapFragment extends Fragment {
 
     private MapView mapView;
-    private TextView statFlights, statCountries, statAirports, statRoutes;
+
 
     private MaterialCardView cardSettings;
     private View settingsScrim;
@@ -112,10 +112,7 @@ public class MapFragment extends Fragment {
         mapView.setVerticalMapRepetitionEnabled(false);
         mapView.setScrollableAreaLimitDouble(new org.osmdroid.util.BoundingBox(85.0, 180.0, -85.0, -180.0));
 
-        statFlights   = view.findViewById(R.id.stat_flights);
-        statCountries = view.findViewById(R.id.stat_countries);
-        statAirports  = view.findViewById(R.id.stat_airports);
-        statRoutes    = view.findViewById(R.id.stat_routes);
+
 
         // Find Settings Views
         btnProfile        = view.findViewById(R.id.btn_profile);
@@ -647,10 +644,7 @@ public class MapFragment extends Fragment {
 
                 mapView.invalidate();
 
-                statFlights.setText(String.valueOf(finalFlights));
-                statAirports.setText(String.valueOf(finalAirports));
-                statRoutes.setText(String.valueOf(finalRoutes));
-                statCountries.setText(String.valueOf(finalCountries));
+
             });
         });
     }

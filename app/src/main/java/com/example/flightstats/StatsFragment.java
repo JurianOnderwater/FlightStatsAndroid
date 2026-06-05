@@ -57,6 +57,10 @@ import java.util.TreeMap;
 import java.util.concurrent.Executors;
 import java.util.Collections;
 import android.widget.HorizontalScrollView;
+import androidx.recyclerview.widget.RecyclerView;
+import com.google.android.material.carousel.CarouselLayoutManager;
+import com.google.android.material.carousel.CarouselSnapHelper;
+import com.google.android.material.carousel.MaskableFrameLayout;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 
@@ -89,6 +93,12 @@ public class StatsFragment extends Fragment {
     private androidx.core.widget.NestedScrollView scrollStatsContent;
     private String lastSelectedYear = null;
     private boolean isStoryExpanded = false;
+
+    // Carousel views and lists
+    private RecyclerView statsCarousel;
+    private CarouselAdapter carouselAdapter;
+    private final List<String> visibleCarouselCardIds = new ArrayList<>();
+    private final CarouselData carouselData = new CarouselData();
 
     private android.text.Spanned parseMarkdown(String markdown) {
         if (markdown == null) return new android.text.SpannableString("");
@@ -143,6 +153,14 @@ public class StatsFragment extends Fragment {
         btnExpandStory      = root.findViewById(R.id.btn_expand_story);
         btnRegenerateStoryIndividual = root.findViewById(R.id.btn_regenerate_story_individual);
         scrollStatsContent  = root.findViewById(R.id.scroll_stats_content);
+
+        statsCarousel = root.findViewById(R.id.stats_carousel);
+        if (statsCarousel != null) {
+            statsCarousel.setLayoutManager(new CarouselLayoutManager());
+            new CarouselSnapHelper().attachToRecyclerView(statsCarousel);
+            carouselAdapter = new CarouselAdapter(visibleCarouselCardIds, carouselData);
+            statsCarousel.setAdapter(carouselAdapter);
+        }
 
         if (btnExpandStory != null) {
             btnExpandStory.setOnClickListener(v -> {
@@ -219,25 +237,42 @@ public class StatsFragment extends Fragment {
     private int cardViewId(String id) {
         switch (id) {
             case "overview":     return R.id.card_overview;
-            case "distance":     return R.id.card_distance;
-            case "longest":      return R.id.card_longest;
-            case "top_airports": return R.id.card_top_airports;
             case "charts":       return R.id.card_charts;
             case "footprint":    return R.id.card_footprint;
-            case "time":         return R.id.card_time;
-            case "top_routes":   return R.id.card_top_routes;
             default:             return 0;
         }
     }
 
     private void applyCardVisibility() {
         if (root == null) return;
-        for (String id : CARD_IDS) {
+        
+        // 1. Handle non-carousel cards
+        String[] nonCarouselIds = {"overview", "charts", "footprint"};
+        for (String id : nonCarouselIds) {
             int viewId = cardViewId(id);
             if (viewId != 0) {
                 View card = root.findViewById(viewId);
-                if (card != null) card.setVisibility(isCardEnabled(id) ? View.VISIBLE : View.GONE);
+                if (card != null) {
+                    card.setVisibility(isCardEnabled(id) ? View.VISIBLE : View.GONE);
+                }
             }
+        }
+
+        // 2. Handle carousel cards
+        visibleCarouselCardIds.clear();
+        if (isCardEnabled("distance")) visibleCarouselCardIds.add("distance");
+        if (isCardEnabled("longest")) visibleCarouselCardIds.add("longest");
+        if (isCardEnabled("time")) visibleCarouselCardIds.add("time");
+        if (isCardEnabled("top_airports")) visibleCarouselCardIds.add("top_airports");
+        if (isCardEnabled("top_routes")) visibleCarouselCardIds.add("top_routes");
+
+        if (carouselAdapter != null) {
+            carouselAdapter.notifyDataSetChanged();
+        }
+
+        // 3. Hide RecyclerView if empty
+        if (statsCarousel != null) {
+            statsCarousel.setVisibility(visibleCarouselCardIds.isEmpty() ? View.GONE : View.VISIBLE);
         }
     }
 
@@ -332,7 +367,7 @@ public class StatsFragment extends Fragment {
         final String[] lbls = yearLabels;
         if (vals == null || vals.length == 0) return;
 
-        int primaryColor   = resolveColor(com.google.android.material.R.attr.colorPrimary);
+        int primaryColor   = resolveColor(androidx.appcompat.R.attr.colorPrimary);
         int secondaryColor = resolveColor(com.google.android.material.R.attr.colorSecondaryContainer);
         int onSurface      = resolveColor(com.google.android.material.R.attr.colorOnSurface);
 
@@ -376,7 +411,7 @@ public class StatsFragment extends Fragment {
     private void renderChart(int[] values, String[] labels) {
         if (values == null || values.length == 0 || barChart == null) return;
 
-        int primaryColor   = resolveColor(com.google.android.material.R.attr.colorPrimary);
+        int primaryColor   = resolveColor(androidx.appcompat.R.attr.colorPrimary);
         int secondaryColor = resolveColor(com.google.android.material.R.attr.colorSecondaryContainer);
         int onPrimary      = resolveColor(com.google.android.material.R.attr.colorOnSurface);
 
@@ -584,7 +619,7 @@ public class StatsFragment extends Fragment {
             for (int count : countryCounts.values()) pieTotal += count;
 
             int[] palette = {
-                    resolveColor(com.google.android.material.R.attr.colorPrimary),
+                    resolveColor(androidx.appcompat.R.attr.colorPrimary),
                     resolveColor(com.google.android.material.R.attr.colorTertiary),
                     resolveColor(com.google.android.material.R.attr.colorSecondary),
                     resolveColor(com.google.android.material.R.attr.colorPrimaryContainer),
@@ -598,7 +633,7 @@ public class StatsFragment extends Fragment {
                     float val = sortedCountries.get(i).getValue();
                     String pct = String.format(Locale.US, "%.1f%%", (val / pieTotal) * 100);
                     pieSlices.add(new EdgeToEdgePieView.Slice(
-                            val, palette[i % palette.length], FlightListItem.countryToFlag(code) + " " + code, pct));
+                            val, palette[i % palette.length], code, pct));
                 } else {
                     otherCount += sortedCountries.get(i).getValue();
                 }
@@ -664,46 +699,17 @@ public class StatsFragment extends Fragment {
 
                 String preferredUnit = settingsPrefs.getString("preferred_unit", "km");
 
-                if ("mi".equals(preferredUnit)) {
-                    setText(R.id.stat_km,               formatKm(km * 0.621371) + " mi");
-                    setText(R.id.stat_miles,             formatKm(km) + " km");
-                    setText(R.id.label_miles,            "kilometers");
-                    setText(R.id.stat_circumnavigations, String.format("%.2f×", km / 40075.0));
-                    setText(R.id.stat_moon,              String.format("%.1f%%", (km / 384400.0) * 100.0));
+                // Update in-memory carousel data
+                carouselData.km = km;
+                carouselData.bestFlight = bestFlight;
+                carouselData.topAirports = topAirports;
+                carouselData.topRoutes = topRoutes;
+                carouselData.preferredUnit = preferredUnit;
 
-                    if (bestFlight != null) {
-                        setText(R.id.stat_longest_origin, bestFlight.origin);
-                        setText(R.id.stat_longest_dest,   bestFlight.destination);
-                        setText(R.id.stat_longest_detail, Math.round(bestFlight.distance * 0.621371) + " mi  ·  " + bestFlight.date);
-                    } else {
-                        setText(R.id.stat_longest_origin, "—");
-                        setText(R.id.stat_longest_dest,   "—");
-                        setText(R.id.stat_longest_detail, "");
-                    }
-                } else {
-                    setText(R.id.stat_km,               formatKm(km) + " km");
-                    setText(R.id.stat_miles,             formatKm(km * 0.621371) + " mi");
-                    setText(R.id.label_miles,            "miles");
-                    setText(R.id.stat_circumnavigations, String.format("%.2f×", km / 40075.0));
-                    setText(R.id.stat_moon,              String.format("%.1f%%", (km / 384400.0) * 100.0));
-
-                    if (bestFlight != null) {
-                        setText(R.id.stat_longest_origin, bestFlight.origin);
-                        setText(R.id.stat_longest_dest,   bestFlight.destination);
-                        setText(R.id.stat_longest_detail, Math.round(bestFlight.distance) + " km  ·  " + bestFlight.date);
-                    } else {
-                        setText(R.id.stat_longest_origin, "—");
-                        setText(R.id.stat_longest_dest,   "—");
-                        setText(R.id.stat_longest_detail, "");
-                    }
+                // Notify adapter that carousel data has updated
+                if (carouselAdapter != null) {
+                    carouselAdapter.notifyDataSetChanged();
                 }
-
-                int hours = (int)(km / 800.0);
-                setText(R.id.stat_hours, String.valueOf(hours));
-                setText(R.id.stat_days,  String.valueOf(hours / 24));
-
-                populateList(R.id.list_top_airports, topAirports);
-                populateList(R.id.list_top_routes, topRoutes);
 
                 // Show or hide the Year toggle button on the patterns card based on selectedYear filter
                 boolean isAllTime = selectedYear == null || selectedYear.equals("All Time");
@@ -864,7 +870,7 @@ public class StatsFragment extends Fragment {
         if (container == null) return;
         container.removeAllViews();
         float density = getResources().getDisplayMetrics().density;
-        int primaryColor = resolveColor(com.google.android.material.R.attr.colorPrimary);
+        int primaryColor = resolveColor(androidx.appcompat.R.attr.colorPrimary);
         // Detect which container to pick right text color
         boolean onSecondary = (containerId == R.id.list_top_routes);
         int textColor = onSecondary
@@ -1076,5 +1082,259 @@ public class StatsFragment extends Fragment {
             }
             loadStats();
         });
+    }
+
+    private void populateViewHolderList(LinearLayout container, List<String> items, boolean onSecondary) {
+        if (container == null) return;
+        container.removeAllViews();
+        float density = container.getContext().getResources().getDisplayMetrics().density;
+        int primaryColor = resolveColor(androidx.appcompat.R.attr.colorPrimary);
+        int textColor = resolveColor(com.google.android.material.R.attr.colorOnSurface);
+        int surfaceVariantColor = resolveColor(com.google.android.material.R.attr.colorSurfaceVariant);
+        int outlineVariantColor = resolveColor(com.google.android.material.R.attr.colorOutlineVariant);
+
+        for (int i = 0; i < Math.min(3, items.size()); i++) {
+            com.google.android.material.card.MaterialCardView subcard = new com.google.android.material.card.MaterialCardView(container.getContext());
+            subcard.setCardBackgroundColor(android.content.res.ColorStateList.valueOf(surfaceVariantColor));
+            subcard.setStrokeColor(android.content.res.ColorStateList.valueOf(outlineVariantColor));
+            subcard.setStrokeWidth(Math.round(1 * density));
+            subcard.setRadius(10 * density);
+            subcard.setCardElevation(0f);
+            
+            LinearLayout.LayoutParams subcardLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                Math.round(32 * density)
+            );
+            subcardLp.setMargins(0, 0, 0, Math.round(4 * density));
+            subcard.setLayoutParams(subcardLp);
+
+            LinearLayout row = new LinearLayout(container.getContext());
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            row.setPadding(Math.round(10 * density), 0, Math.round(10 * density), 0);
+
+            TextView rank = new TextView(container.getContext());
+            rank.setText(String.valueOf(i + 1));
+            rank.setTextSize(10f);
+            rank.setTextColor(resolveColor(com.google.android.material.R.attr.colorOnPrimary));
+            rank.setTypeface(null, android.graphics.Typeface.BOLD);
+            int badgeSize = Math.round(20 * density);
+            float cornerRadius = badgeSize * 0.30f;
+            MaterialShapeDrawable squareBg = new MaterialShapeDrawable(
+                    ShapeAppearanceModel.builder()
+                            .setAllCornerSizes(cornerRadius)
+                            .build());
+            squareBg.setFillColor(android.content.res.ColorStateList.valueOf(primaryColor));
+            rank.setBackground(squareBg);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(badgeSize, badgeSize);
+            lp.setMarginEnd(Math.round(8 * density));
+            rank.setLayoutParams(lp);
+            rank.setGravity(android.view.Gravity.CENTER);
+            rank.setPadding(0, 0, 0, 0);
+
+            TextView content = new TextView(container.getContext());
+            content.setText(items.get(i));
+            content.setTextSize(11f);
+            content.setTextColor(textColor);
+            content.setSingleLine(true);
+            content.setEllipsize(android.text.TextUtils.TruncateAt.END);
+
+            row.addView(rank);
+            row.addView(content);
+            subcard.addView(row);
+            container.addView(subcard);
+        }
+    }
+
+    private static class CarouselData {
+        double km = 0;
+        Flight bestFlight = null;
+        List<String> topAirports = new ArrayList<>();
+        List<String> topRoutes = new ArrayList<>();
+        String preferredUnit = "km";
+    }
+
+    private class CarouselAdapter extends RecyclerView.Adapter<CarouselAdapter.ViewHolder> {
+        private final List<String> cardIds;
+        private final CarouselData data;
+
+        CarouselAdapter(List<String> cardIds, CarouselData data) {
+            this.cardIds = cardIds;
+            this.data = data;
+        }
+
+        @Override
+        public int getItemViewType(int position) {
+            String id = cardIds.get(position);
+            switch (id) {
+                case "distance": return 0;
+                case "longest": return 1;
+                case "time": return 2;
+                case "top_airports": return 3;
+                case "top_routes": return 4;
+                default: return 0;
+            }
+        }
+
+        private int getLayoutForViewType(int viewType) {
+            switch (viewType) {
+                case 0: return R.layout.item_carousel_distance;
+                case 1: return R.layout.item_carousel_longest;
+                case 2: return R.layout.item_carousel_time;
+                case 3: return R.layout.item_carousel_airports;
+                case 4: return R.layout.item_carousel_routes;
+                default: return R.layout.item_carousel_distance;
+            }
+        }
+
+        @NonNull
+        @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            int layoutId = getLayoutForViewType(viewType);
+            View view = LayoutInflater.from(parent.getContext()).inflate(layoutId, parent, false);
+            
+            MaskableFrameLayout container = new MaskableFrameLayout(parent.getContext());
+            
+            float density = parent.getContext().getResources().getDisplayMetrics().density;
+            int widthPx = Math.round(220 * density);
+            int heightPx = Math.round(220 * density);
+            int marginHorizontalPx = 0;
+            
+            ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(widthPx, heightPx);
+            lp.setMargins(marginHorizontalPx, 0, marginHorizontalPx, 0);
+            container.setLayoutParams(lp);
+
+            // Set shape appearance model to rectangular so the card's own rounded corners and outlines are not clipped
+            ShapeAppearanceModel shapeAppearanceModel = ShapeAppearanceModel.builder()
+                .setAllCornerSizes(0f)
+                .build();
+            container.setShapeAppearanceModel(shapeAppearanceModel);
+
+            // Resizes and centers card content within the mask bounds as card scrolls away (preserving corners and outlines)
+            container.setOnMaskChangedListener(new com.google.android.material.carousel.OnMaskChangedListener() {
+                @Override
+                public void onMaskChanged(android.graphics.RectF maskRect) {
+                    float containerWidth = container.getWidth();
+                    if (containerWidth == 0) {
+                        containerWidth = 220f * density;
+                    }
+                    float maskWidth = maskRect.width();
+                    
+                    // Maintain a consistent gap/padding of 8dp between items by making the visual card width slightly smaller than the mask
+                    float gapPx = 8f * density;
+                    float targetWidth = Math.max(0f, maskWidth - gapPx);
+
+                    float scale = targetWidth / containerWidth;
+                    if (scale < 0f) scale = 0f;
+                    if (scale > 1f) scale = 1f;
+
+                    float maskCenter = maskRect.centerX();
+                    float containerCenter = containerWidth / 2f;
+                    float translationX = maskCenter - containerCenter;
+
+                    // Scale horizontally (squish) and keep vertical scale at 1f (same height)
+                    view.setScaleX(scale);
+                    view.setScaleY(1f);
+                    view.setTranslationX(translationX);
+                }
+            });
+            
+            container.addView(view, new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            ));
+            
+            return new ViewHolder(container, viewType);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            int viewType = getItemViewType(position);
+            View card = holder.container.getChildAt(0);
+            if (card == null) return;
+            
+            String preferredUnit = data.preferredUnit;
+            double km = data.km;
+            Flight bestFlight = data.bestFlight;
+            
+            switch (viewType) {
+                case 0: {
+                    TextView tvKm = card.findViewById(R.id.stat_km);
+                    TextView tvMiles = card.findViewById(R.id.stat_miles);
+                    TextView tvLabelMiles = card.findViewById(R.id.label_miles);
+                    TextView tvCirc = card.findViewById(R.id.stat_circumnavigations);
+                    TextView tvMoon = card.findViewById(R.id.stat_moon);
+                    
+                    if ("mi".equals(preferredUnit)) {
+                        if (tvKm != null) tvKm.setText(formatKm(km * 0.621371) + " mi");
+                        if (tvMiles != null) tvMiles.setText(formatKm(km) + " km");
+                        if (tvLabelMiles != null) tvLabelMiles.setText("kilometers");
+                    } else {
+                        if (tvKm != null) tvKm.setText(formatKm(km) + " km");
+                        if (tvMiles != null) tvMiles.setText(formatKm(km * 0.621371) + " mi");
+                        if (tvLabelMiles != null) tvLabelMiles.setText("miles");
+                    }
+                    if (tvCirc != null) tvCirc.setText(String.format(Locale.US, "%.2f×", km / 40075.0));
+                    if (tvMoon != null) tvMoon.setText(String.format(Locale.US, "%.1f%%", (km / 384400.0) * 100.0));
+                    break;
+                }
+                case 1: {
+                    TextView tvOrigin = card.findViewById(R.id.stat_longest_origin);
+                    TextView tvDest = card.findViewById(R.id.stat_longest_dest);
+                    TextView tvDetail = card.findViewById(R.id.stat_longest_detail);
+                    
+                    if (bestFlight != null) {
+                        if (tvOrigin != null) tvOrigin.setText(bestFlight.origin);
+                        if (tvDest != null) tvDest.setText(bestFlight.destination);
+                        if (tvDetail != null) {
+                            if ("mi".equals(preferredUnit)) {
+                                tvDetail.setText(Math.round(bestFlight.distance * 0.621371) + " mi  ·  " + bestFlight.date);
+                            } else {
+                                tvDetail.setText(Math.round(bestFlight.distance) + " km  ·  " + bestFlight.date);
+                            }
+                        }
+                    } else {
+                        if (tvOrigin != null) tvOrigin.setText("—");
+                        if (tvDest != null) tvDest.setText("—");
+                        if (tvDetail != null) tvDetail.setText("");
+                    }
+                    break;
+                }
+                case 2: {
+                    TextView tvHours = card.findViewById(R.id.stat_hours);
+                    TextView tvDays = card.findViewById(R.id.stat_days);
+                    
+                    int hours = (int)(km / 800.0);
+                    if (tvHours != null) tvHours.setText(hours + " hours");
+                    if (tvDays != null) tvDays.setText(String.valueOf(hours / 24));
+                    break;
+                }
+                case 3: {
+                    LinearLayout listAirports = card.findViewById(R.id.list_top_airports);
+                    populateViewHolderList(listAirports, data.topAirports, false);
+                    break;
+                }
+                case 4: {
+                    LinearLayout listRoutes = card.findViewById(R.id.list_top_routes);
+                    populateViewHolderList(listRoutes, data.topRoutes, true);
+                    break;
+                }
+            }
+        }
+
+        @Override
+        public int getItemCount() {
+            return cardIds.size();
+        }
+
+        class ViewHolder extends RecyclerView.ViewHolder {
+            MaskableFrameLayout container;
+            int viewType;
+            ViewHolder(MaskableFrameLayout container, int viewType) {
+                super(container);
+                this.container = container;
+                this.viewType = viewType;
+            }
+        }
     }
 }
