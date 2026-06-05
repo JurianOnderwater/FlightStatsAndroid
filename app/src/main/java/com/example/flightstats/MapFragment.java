@@ -46,11 +46,14 @@ import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.Marker;
 import org.osmdroid.views.overlay.Polyline;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -74,11 +77,14 @@ public class MapFragment extends Fragment {
     private com.google.android.material.materialswitch.MaterialSwitch switchAiOverviews;
     private MaterialButtonToggleGroup toggleThemeGroup;
     private MaterialButton btnThemeLight, btnThemeDark, btnThemeSystem;
-    private MaterialButton btnCancel, btnSave;
+    private MaterialButton btnClose;
 
     // Settings nav toggle group and tab contents
     private MaterialButtonToggleGroup settingsNavGroup;
-    private LinearLayout tabContentUser, tabContentMap, tabContentTheme, tabContentAi;
+    private androidx.core.widget.NestedScrollView tabContentUser, tabContentMap, tabContentTheme, tabContentAi;
+    private MaterialButtonToggleGroup toggleUnitGroup;
+    private MaterialButtonToggleGroup toggleRouteGroup;
+    private MaterialButtonToggleGroup toggleToneGroup;
     private TextInputEditText inputUserName;
     private TextView textProfileInitial;
 
@@ -121,8 +127,7 @@ public class MapFragment extends Fragment {
         btnThemeLight     = view.findViewById(R.id.btn_theme_light);
         btnThemeDark      = view.findViewById(R.id.btn_theme_dark);
         btnThemeSystem    = view.findViewById(R.id.btn_theme_system);
-        btnCancel         = view.findViewById(R.id.btn_settings_cancel);
-        btnSave           = view.findViewById(R.id.btn_settings_save);
+        btnClose          = view.findViewById(R.id.btn_settings_close);
         switchAiOverviews = view.findViewById(R.id.switch_ai_overviews);
         
         MaterialButton btnRegenerateAllStories = view.findViewById(R.id.btn_regenerate_all_stories);
@@ -137,6 +142,10 @@ public class MapFragment extends Fragment {
         tabContentAi      = view.findViewById(R.id.settings_tab_content_ai);
         inputUserName     = view.findViewById(R.id.input_user_name);
         textProfileInitial = view.findViewById(R.id.text_profile_initial);
+
+        toggleUnitGroup   = view.findViewById(R.id.toggle_unit_group);
+        toggleRouteGroup  = view.findViewById(R.id.toggle_route_group);
+        toggleToneGroup   = view.findViewById(R.id.toggle_tone_group);
 
         View profileContainer = view.findViewById(R.id.profile_container);
         if (profileContainer != null) {
@@ -164,6 +173,11 @@ public class MapFragment extends Fragment {
         String userNamePref = prefs.getString("user_name", "User").trim();
         if (userNamePref.isEmpty()) userNamePref = "User";
 
+        String unitPref = prefs.getString("preferred_unit", "km");
+        boolean routeCurvedPref = prefs.getBoolean("map_route_curved", true);
+        String tonePref = prefs.getString("ai_summary_tone", "analytical");
+
+        // Load existing preference values to UI elements without triggering listeners prematurely
         inputHometown.setText(hometownPref);
         sliderZoom.setValue(zoomPref);
         switchAiOverviews.setChecked(aiOverviewsPref);
@@ -176,6 +190,30 @@ public class MapFragment extends Fragment {
             toggleThemeGroup.check(R.id.btn_theme_dark);
         } else {
             toggleThemeGroup.check(R.id.btn_theme_system);
+        }
+
+        if (toggleUnitGroup != null) {
+            if ("mi".equals(unitPref)) {
+                toggleUnitGroup.check(R.id.btn_unit_imperial);
+            } else {
+                toggleUnitGroup.check(R.id.btn_unit_metric);
+            }
+        }
+
+        if (toggleRouteGroup != null) {
+            if (routeCurvedPref) {
+                toggleRouteGroup.check(R.id.btn_route_curved);
+            } else {
+                toggleRouteGroup.check(R.id.btn_route_straight);
+            }
+        }
+
+        if (toggleToneGroup != null) {
+            if ("narrative".equals(tonePref)) {
+                toggleToneGroup.check(R.id.btn_tone_narrative);
+            } else {
+                toggleToneGroup.check(R.id.btn_tone_analytical);
+            }
         }
 
         // Wire up the icon nav toggle group
@@ -201,84 +239,98 @@ public class MapFragment extends Fragment {
             if (tabContentAi != null) tabContentAi.setVisibility(View.GONE);
         });
 
-        // Click listener to cancel/dismiss settings
+        // Click listener to close floating card (simply dismiss since everything is autosaved)
         View.OnClickListener dismissListener = v -> {
             cardSettings.setVisibility(View.GONE);
             settingsScrim.setVisibility(View.GONE);
-            // Reset overlay state back to saved preference values
-            String currHometown = prefs.getString("hometown", "AMS").trim().toUpperCase();
-            float currZoom = Math.max(4.0f, prefs.getFloat("default_zoom", 4.5f));
-            int currTheme = prefs.getInt("theme_mode", 2);
-            boolean currAiOverviews = prefs.getBoolean("enable_ai_overviews", true);
-            String currUserName = prefs.getString("user_name", "User").trim();
-            if (currUserName.isEmpty()) currUserName = "User";
-
-            inputHometown.setText(currHometown);
-            sliderZoom.setValue(currZoom);
-            switchAiOverviews.setChecked(currAiOverviews);
-            inputUserName.setText(currUserName);
-
-            if (currTheme == 0) {
-                toggleThemeGroup.check(R.id.btn_theme_light);
-            } else if (currTheme == 1) {
-                toggleThemeGroup.check(R.id.btn_theme_dark);
-            } else {
-                toggleThemeGroup.check(R.id.btn_theme_system);
-            }
         };
-
-        btnCancel.setOnClickListener(dismissListener);
+        if (btnClose != null) {
+            btnClose.setOnClickListener(dismissListener);
+        }
         settingsScrim.setOnClickListener(dismissListener);
 
-        // Click listener to save settings
-        btnSave.setOnClickListener(v -> {
-            String newHometown = inputHometown.getText().toString().trim().toUpperCase();
-            if (newHometown.length() != 3) {
-                inputHometown.setError("Please enter a valid 3-letter IATA code");
-                return;
+        // Real-time autosave listeners for settings
+        inputUserName.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(android.text.Editable s) {
+                String name = s.toString().trim();
+                if (name.isEmpty()) name = "User";
+                prefs.edit().putString("user_name", name).apply();
+                textProfileInitial.setText(name.substring(0, 1).toUpperCase());
             }
-            float newZoom = sliderZoom.getValue();
-            int selectedThemeId = toggleThemeGroup.getCheckedButtonId();
-            int newThemeMode = 2; // System Default
-            if (selectedThemeId == R.id.btn_theme_light) {
-                newThemeMode = 0;
-            } else if (selectedThemeId == R.id.btn_theme_dark) {
-                newThemeMode = 1;
+        });
+
+        inputHometown.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(android.text.Editable s) {
+                String iata = s.toString().trim().toUpperCase();
+                if (iata.length() == 3) {
+                    inputHometown.setError(null);
+                    prefs.edit().putString("hometown", iata).apply();
+                    isInitialLoad = true;
+                    loadMapAndStats();
+                } else {
+                    inputHometown.setError("Please enter a valid 3-letter IATA code");
+                }
             }
+        });
 
-            String newUserName = inputUserName.getText().toString().trim();
-            if (newUserName.isEmpty()) {
-                newUserName = "User";
+        sliderZoom.addOnChangeListener((slider, value, fromUser) -> {
+            prefs.edit().putFloat("default_zoom", value).apply();
+            if (mapView != null) {
+                mapView.getController().setZoom((double) value);
             }
+        });
 
-            // Save to preferences
-            prefs.edit()
-                .putString("hometown", newHometown)
-                .putFloat("default_zoom", newZoom)
-                .putInt("theme_mode", newThemeMode)
-                .putBoolean("enable_ai_overviews", switchAiOverviews.isChecked())
-                .putString("user_name", newUserName)
-                .apply();
-
-            // Update badge text dynamically
-            textProfileInitial.setText(newUserName.substring(0, 1).toUpperCase());
-
-            // Dismiss overlay
-            cardSettings.setVisibility(View.GONE);
-            settingsScrim.setVisibility(View.GONE);
-
-            // Apply theme changes dynamically
-            if (newThemeMode == 0) {
+        toggleThemeGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+            if (!isChecked) return;
+            int themeMode = 2; // System Auto
+            if (checkedId == R.id.btn_theme_light) {
+                themeMode = 0;
+            } else if (checkedId == R.id.btn_theme_dark) {
+                themeMode = 1;
+            }
+            prefs.edit().putInt("theme_mode", themeMode).apply();
+            
+            if (themeMode == 0) {
                 AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
-            } else if (newThemeMode == 1) {
+            } else if (themeMode == 1) {
                 AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
             } else {
                 AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
             }
+        });
 
-            // Force map to re-center and apply new zoom settings
-            isInitialLoad = true;
-            loadMapAndStats();
+        if (toggleUnitGroup != null) {
+            toggleUnitGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+                if (!isChecked) return;
+                String unit = (checkedId == R.id.btn_unit_imperial) ? "mi" : "km";
+                prefs.edit().putString("preferred_unit", unit).apply();
+                loadMapAndStats();
+            });
+        }
+
+        if (toggleRouteGroup != null) {
+            toggleRouteGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+                if (!isChecked) return;
+                boolean curved = (checkedId == R.id.btn_route_curved);
+                prefs.edit().putBoolean("map_route_curved", curved).apply();
+                loadMapAndStats();
+            });
+        }
+
+        if (toggleToneGroup != null) {
+            toggleToneGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+                if (!isChecked) return;
+                String tone = (checkedId == R.id.btn_tone_narrative) ? "narrative" : "analytical";
+                prefs.edit().putString("ai_summary_tone", tone).apply();
+            });
+        }
+
+        switchAiOverviews.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            prefs.edit().putBoolean("enable_ai_overviews", isChecked).apply();
         });
 
         // Sequential: import airports → import flights → render
@@ -319,7 +371,14 @@ public class MapFragment extends Fragment {
         Executors.newSingleThreadExecutor().execute(() -> {
             try {
                 AppDatabase db = AppDatabase.getDatabase(requireContext());
-                List<Flight> allFlights = db.flightDao().getAllFlights();
+                List<Flight> dbFlights = db.flightDao().getAllFlights();
+                String todayStr = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+                List<Flight> allFlights = new ArrayList<>();
+                for (Flight f : dbFlights) {
+                    if (f.date != null && f.date.compareTo(todayStr) < 0) {
+                        allFlights.add(f);
+                    }
+                }
                 
                 Set<String> yearsSet = new HashSet<>();
                 for (Flight f : allFlights) {
@@ -386,10 +445,26 @@ public class MapFragment extends Fragment {
                     String countryList = android.text.TextUtils.join(", ", countries);
                     String tripList = android.text.TextUtils.join("; ", trips);
 
+                    String tone = settingsPrefs.getString("ai_summary_tone", "analytical");
+                    String toneInstruction;
+                    if ("narrative".equals(tone)) {
+                        toneInstruction = "Write in a warm, narrative, and conversational travel log style. Flowing prose only, no bullet lists. Max 2 short paragraphs.";
+                    } else {
+                        toneInstruction = "Write in an analytical, concise, and structured style. Use a bulleted list for key highlights and statistics.";
+                    }
+
+                    String unitPrefVal = settingsPrefs.getString("preferred_unit", "km");
+                    double distanceVal = km;
+                    String unitName = "km";
+                    if ("mi".equals(unitPrefVal)) {
+                        distanceVal = km * 0.6213711922;
+                        unitName = "miles";
+                    }
+
                     String prompt = "Write a short travel summary for " + year + ", addressing the reader as 'you'. " +
-                        "Flowing prose only, no bullet lists. Max 2 short paragraphs. " +
+                        toneInstruction + " " +
                         "Stick to the facts below — do not invent destinations or activities. " +
-                        "Stats: " + flights + " flights, " + (int)km + " km total. " +
+                        "Stats: " + flights + " flights, " + (int)distanceVal + " " + unitName + " total. " +
                         "Countries: " + countryList + ". " +
                         "Flights in order: " + tripList + ". " +
                         "Group legs into trips where logical. Bold place names and key numbers. No emojis.";
@@ -447,7 +522,14 @@ public class MapFragment extends Fragment {
             android.content.Context bgContext = getContext();
             if (bgContext == null) return;
             AppDatabase db = AppDatabase.getDatabase(bgContext);
-            List<Flight> flights = db.flightDao().getAllFlights();
+            List<Flight> dbFlights = db.flightDao().getAllFlights();
+            String todayStr = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+            List<Flight> flights = new ArrayList<>();
+            for (Flight f : dbFlights) {
+                if (f.date != null && f.date.compareTo(todayStr) < 0) {
+                    flights.add(f);
+                }
+            }
 
             Set<String> airportSet = new HashSet<>();
             Set<String> countrySet = new HashSet<>();
@@ -516,12 +598,20 @@ public class MapFragment extends Fragment {
                 // Apply 80% alpha for a nice semi-transparent look
                 int routeColor = (0xCC000000 & 0xFF000000) | (primaryColor & 0x00FFFFFF);
 
-                // Draw geodesic route arcs using theme colorPrimary
+                // Draw route lines using theme colorPrimary (either geodesic or straight)
+                boolean isCurved = prefs.getBoolean("map_route_curved", true);
                 for (String key : finalRouteDataMap.keySet()) {
                     RouteData r = finalRouteDataMap.get(key);
-                    List<GeoPoint> arc = GeodesicHelper.greatCircleArc(r.from, r.to, 64);
+                    List<GeoPoint> points;
+                    if (isCurved) {
+                        points = GeodesicHelper.greatCircleArc(r.from, r.to, 64);
+                    } else {
+                        points = new ArrayList<>();
+                        points.add(r.from);
+                        points.add(r.to);
+                    }
                     Polyline line = new Polyline(mapView);
-                    line.setPoints(arc);
+                    line.setPoints(points);
                     line.setColor(routeColor);
                     line.setWidth(2.5f);
                     line.setTitle(r.fromCode + " → " + r.toCode);

@@ -15,39 +15,37 @@ public class AirportImporter {
     private static final String TAG = "AirportImporter";
     private static final String PREFS_NAME = "FlightStatsPrefs";
     private static final String KEY_AIRPORTS_DB_VERSION = "airports_db_version";
-    private static final int CURRENT_DB_VERSION = 5; // Bumped to force re-import
+    private static final int CURRENT_DB_VERSION = 7; // Bumped to force re-import
 
     public interface ImportCallback {
         void onComplete(int count);
     }
 
     public static void importIfNeeded(Context context, ImportCallback callback) {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        int importedVersion = prefs.getInt(KEY_AIRPORTS_DB_VERSION, -1);
-
-        if (importedVersion == CURRENT_DB_VERSION) {
-            if (callback != null) callback.onComplete(0);
-            return;
-        }
-
         ExecutorService executor = Executors.newSingleThreadExecutor();
         executor.execute(() -> {
             int count = 0;
             try {
                 AppDatabase db = AppDatabase.getDatabase(context);
                 AirportDao dao = db.airportDao();
+                int existingCount = dao.count();
 
-                List<Airport> airports = parseCsv(context);
-                if (!airports.isEmpty()) {
-                    int chunkSize = 500;
-                    for (int i = 0; i < airports.size(); i += chunkSize) {
-                        dao.insertAll(airports.subList(i, Math.min(i + chunkSize, airports.size())));
+                SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+                int importedVersion = prefs.getInt(KEY_AIRPORTS_DB_VERSION, -1);
+
+                if (existingCount == 0 || importedVersion != CURRENT_DB_VERSION) {
+                    List<Airport> airports = parseCsv(context);
+                    if (!airports.isEmpty()) {
+                        // Insert in chunks
+                        int chunkSize = 500;
+                        for (int i = 0; i < airports.size(); i += chunkSize) {
+                            dao.insertAll(airports.subList(i, Math.min(i + chunkSize, airports.size())));
+                        }
+                        count = airports.size();
                     }
-                    count = airports.size();
+                    prefs.edit().putInt(KEY_AIRPORTS_DB_VERSION, CURRENT_DB_VERSION).apply();
+                    Log.d(TAG, "Imported " + count + " airports.");
                 }
-
-                prefs.edit().putInt(KEY_AIRPORTS_DB_VERSION, CURRENT_DB_VERSION).apply();
-                Log.d(TAG, "Imported " + count + " airports.");
             } catch (Exception e) {
                 Log.e(TAG, "Airport import failed", e);
             }

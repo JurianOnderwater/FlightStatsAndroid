@@ -63,6 +63,7 @@ dependencies {
     implementation(libs.mlkit.barcode)
     implementation("com.google.mlkit:genai-prompt:1.0.0-beta2")
     testImplementation(libs.junit)
+    testImplementation("com.google.mlkit:genai-prompt:1.0.0-beta2")
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
 }

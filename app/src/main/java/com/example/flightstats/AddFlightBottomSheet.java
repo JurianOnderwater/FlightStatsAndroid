@@ -34,7 +34,8 @@ public class AddFlightBottomSheet extends BottomSheetDialogFragment {
     private OnFlightAddedListener listener;
 
     private TextInputEditText inputDate, inputOrigin, inputDestination,
-                              inputFlightNumber, inputAirline, inputSeat, inputNotes;
+                              inputFlightNumber, inputAirline, inputSeat, inputNotes,
+                              inputDepartureTime, inputArrivalTime;
     private AutoCompleteTextView inputSeatClass;
     private long selectedDateMs = System.currentTimeMillis();
 
@@ -81,6 +82,8 @@ public class AddFlightBottomSheet extends BottomSheetDialogFragment {
         inputSeat         = view.findViewById(R.id.input_seat);
         inputSeatClass    = view.findViewById(R.id.input_seat_class);
         inputNotes        = view.findViewById(R.id.input_notes);
+        inputDepartureTime = view.findViewById(R.id.input_departure_time);
+        inputArrivalTime   = view.findViewById(R.id.input_arrival_time);
 
         // Seat class dropdown
         ArrayAdapter<String> classAdapter = new ArrayAdapter<>(requireContext(),
@@ -132,15 +135,17 @@ public class AddFlightBottomSheet extends BottomSheetDialogFragment {
             double distance = haversine(oAirport.lat, oAirport.lng, dAirport.lat, dAirport.lng);
 
             Flight f = new Flight();
-            f.origin       = origin;
-            f.destination  = dest;
-            f.date         = date;
-            f.distance     = distance;
-            f.flightNumber = str(inputFlightNumber);
-            f.airline      = str(inputAirline);
-            f.seat         = str(inputSeat);
-            f.seatClass    = inputSeatClass.getText().toString().trim();
-            f.notes        = str(inputNotes);
+            f.origin        = origin;
+            f.destination   = dest;
+            f.date          = date;
+            f.distance      = distance;
+            f.flightNumber  = str(inputFlightNumber);
+            f.airline       = str(inputAirline);
+            f.seat          = str(inputSeat);
+            f.seatClass     = inputSeatClass.getText().toString().trim();
+            f.notes         = str(inputNotes);
+            f.departureTime = str(inputDepartureTime);
+            f.arrivalTime   = str(inputArrivalTime);
 
             db.flightDao().insertFlight(f);
 

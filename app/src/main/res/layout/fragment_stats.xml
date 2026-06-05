@@ -277,7 +277,8 @@
                                 android:layout_width="wrap_content" android:layout_height="wrap_content"
                                 android:text="0 mi" android:textSize="16sp" android:textStyle="bold"
                                 android:textColor="?attr/colorOnSecondaryContainer"/>
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            <TextView android:id="@+id/label_miles"
+                                android:layout_width="wrap_content" android:layout_height="wrap_content"
                                 android:text="miles" android:textSize="11sp"
                                 android:textColor="?attr/colorOnSecondaryContainer" android:alpha="0.65"/>
                         </LinearLayout>

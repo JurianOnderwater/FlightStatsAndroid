@@ -20,4 +20,7 @@ public class Flight {
     public String seat;         // e.g. "23A"
     public String seatClass;    // "Economy", "Business", "First", "Premium Economy"
     public String notes;        // free-form notes
+
+    public String departureTime; // e.g. "14:30"
+    public String arrivalTime;   // e.g. "21:45"
 }

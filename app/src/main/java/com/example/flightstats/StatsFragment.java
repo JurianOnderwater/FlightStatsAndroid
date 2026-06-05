@@ -125,6 +125,7 @@ public class StatsFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
+        isStoryExpanded = false;
         if (savedInstanceState != null) {
             selectedYear = savedInstanceState.getString("selectedYear", String.valueOf(Calendar.getInstance().get(Calendar.YEAR)));
         }
@@ -424,7 +425,14 @@ public class StatsFragment extends Fragment {
 
         Executors.newSingleThreadExecutor().execute(() -> {
             AppDatabase db = AppDatabase.getDatabase(requireContext());
-            List<Flight> allFlights = db.flightDao().getAllFlights();
+            List<Flight> dbFlights = db.flightDao().getAllFlights();
+            String todayStr = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+            List<Flight> allFlights = new ArrayList<>();
+            for (Flight f : dbFlights) {
+                if (f.date != null && f.date.compareTo(todayStr) < 0) {
+                    allFlights.add(f);
+                }
+            }
 
             // Extract unique flight years dynamically from the full flight list
             Set<String> yearsSet = new HashSet<>();
@@ -654,19 +662,40 @@ public class StatsFragment extends Fragment {
                 setText(R.id.stat_airports,  String.valueOf(finalAirports));
                 setText(R.id.stat_routes,    String.valueOf(finalRoutes));
 
-                setText(R.id.stat_km,               formatKm(km) + " km");
-                setText(R.id.stat_miles,             formatKm(km * 0.621371) + " mi");
-                setText(R.id.stat_circumnavigations, String.format("%.2f×", km / 40075.0));
-                setText(R.id.stat_moon,              String.format("%.1f%%", (km / 384400.0) * 100.0));
+                String preferredUnit = settingsPrefs.getString("preferred_unit", "km");
 
-                if (bestFlight != null) {
-                    setText(R.id.stat_longest_origin, bestFlight.origin);
-                    setText(R.id.stat_longest_dest,   bestFlight.destination);
-                    setText(R.id.stat_longest_detail, Math.round(bestFlight.distance) + " km  ·  " + bestFlight.date);
+                if ("mi".equals(preferredUnit)) {
+                    setText(R.id.stat_km,               formatKm(km * 0.621371) + " mi");
+                    setText(R.id.stat_miles,             formatKm(km) + " km");
+                    setText(R.id.label_miles,            "kilometers");
+                    setText(R.id.stat_circumnavigations, String.format("%.2f×", km / 40075.0));
+                    setText(R.id.stat_moon,              String.format("%.1f%%", (km / 384400.0) * 100.0));
+
+                    if (bestFlight != null) {
+                        setText(R.id.stat_longest_origin, bestFlight.origin);
+                        setText(R.id.stat_longest_dest,   bestFlight.destination);
+                        setText(R.id.stat_longest_detail, Math.round(bestFlight.distance * 0.621371) + " mi  ·  " + bestFlight.date);
+                    } else {
+                        setText(R.id.stat_longest_origin, "—");
+                        setText(R.id.stat_longest_dest,   "—");
+                        setText(R.id.stat_longest_detail, "");
+                    }
                 } else {
-                    setText(R.id.stat_longest_origin, "—");
-                    setText(R.id.stat_longest_dest,   "—");
-                    setText(R.id.stat_longest_detail, "");
+                    setText(R.id.stat_km,               formatKm(km) + " km");
+                    setText(R.id.stat_miles,             formatKm(km * 0.621371) + " mi");
+                    setText(R.id.label_miles,            "miles");
+                    setText(R.id.stat_circumnavigations, String.format("%.2f×", km / 40075.0));
+                    setText(R.id.stat_moon,              String.format("%.1f%%", (km / 384400.0) * 100.0));
+
+                    if (bestFlight != null) {
+                        setText(R.id.stat_longest_origin, bestFlight.origin);
+                        setText(R.id.stat_longest_dest,   bestFlight.destination);
+                        setText(R.id.stat_longest_detail, Math.round(bestFlight.distance) + " km  ·  " + bestFlight.date);
+                    } else {
+                        setText(R.id.stat_longest_origin, "—");
+                        setText(R.id.stat_longest_dest,   "—");
+                        setText(R.id.stat_longest_detail, "");
+                    }
                 }
 
                 int hours = (int)(km / 800.0);
@@ -920,7 +949,14 @@ public class StatsFragment extends Fragment {
         Executors.newSingleThreadExecutor().execute(() -> {
             try {
                 AppDatabase db = AppDatabase.getDatabase(requireContext());
-                List<Flight> allFlights = db.flightDao().getAllFlights();
+                List<Flight> dbFlights = db.flightDao().getAllFlights();
+                String todayStr = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+                List<Flight> allFlights = new ArrayList<>();
+                for (Flight f : dbFlights) {
+                    if (f.date != null && f.date.compareTo(todayStr) < 0) {
+                        allFlights.add(f);
+                    }
+                }
                 List<Flight> filteredFlights;
                 if (selectedYear == null || selectedYear.equals("All Time")) {
                     filteredFlights = allFlights;
@@ -964,10 +1000,27 @@ public class StatsFragment extends Fragment {
                 String countryList = android.text.TextUtils.join(", ", countries);
                 String tripList = android.text.TextUtils.join("; ", trips);
 
+                SharedPreferences settingsPrefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
+                String tone = settingsPrefs.getString("ai_summary_tone", "analytical");
+                String toneInstruction;
+                if ("narrative".equals(tone)) {
+                    toneInstruction = "Write in a warm, narrative, and conversational travel log style. Flowing prose only, no bullet lists. Max 2 short paragraphs.";
+                } else {
+                    toneInstruction = "Write in an analytical, concise, and structured style. Use a bulleted list for key highlights and statistics.";
+                }
+
+                String unitPrefVal = settingsPrefs.getString("preferred_unit", "km");
+                double distanceVal = km;
+                String unitName = "km";
+                if ("mi".equals(unitPrefVal)) {
+                    distanceVal = km * 0.6213711922;
+                    unitName = "miles";
+                }
+
                 String prompt = "Write a short travel summary for " + selectedYear + ", addressing the reader as 'you'. " +
-                    "Flowing prose only, no bullet lists. Max 2 short paragraphs. " +
+                    toneInstruction + " " +
                     "Stick to the facts below — do not invent destinations or activities. " +
-                    "Stats: " + flights + " flights, " + (int)km + " km total. " +
+                    "Stats: " + flights + " flights, " + (int)distanceVal + " " + unitName + " total. " +
                     "Countries: " + countryList + ". " +
                     "Flights in order: " + tripList + ". " +
                     "Group legs into trips where logical. Bold place names and key numbers. No emojis.";

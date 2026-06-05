@@ -63,16 +63,36 @@ public class BcbpParser {
     private static String julianToDate(String julianStr) {
         try {
             int doy = Integer.parseInt(julianStr);
-            Calendar cal = Calendar.getInstance();
-            int year = cal.get(Calendar.YEAR);
-            // Try current year first; if already past, try next year
-            cal.set(Calendar.DAY_OF_YEAR, doy);
-            cal.set(Calendar.YEAR, year);
-            if (cal.getTimeInMillis() < System.currentTimeMillis() - 86_400_000L) {
-                cal.set(Calendar.YEAR, year + 1);
-                cal.set(Calendar.DAY_OF_YEAR, doy);
+            if (doy < 1 || doy > 366) return "";
+
+            Calendar calToday = Calendar.getInstance();
+            long todayMs = calToday.getTimeInMillis();
+            int currentYear = calToday.get(Calendar.YEAR);
+
+            long bestDiff = Long.MAX_VALUE;
+            Calendar bestCal = null;
+
+            for (int y = currentYear - 1; y <= currentYear + 1; y++) {
+                Calendar testCal = Calendar.getInstance();
+                testCal.setLenient(true);
+                testCal.set(Calendar.YEAR, y);
+                testCal.set(Calendar.DAY_OF_YEAR, doy);
+                testCal.set(Calendar.HOUR_OF_DAY, 12);
+                testCal.set(Calendar.MINUTE, 0);
+                testCal.set(Calendar.SECOND, 0);
+                testCal.set(Calendar.MILLISECOND, 0);
+
+                long diff = Math.abs(testCal.getTimeInMillis() - todayMs);
+                if (diff < bestDiff) {
+                    bestDiff = diff;
+                    bestCal = testCal;
+                }
             }
-            return new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(cal.getTime());
+
+            if (bestCal != null) {
+                return new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(bestCal.getTime());
+            }
+            return "";
         } catch (Exception e) {
             return "";
         }

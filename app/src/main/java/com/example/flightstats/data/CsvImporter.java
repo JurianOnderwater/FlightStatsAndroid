@@ -20,37 +20,34 @@ public class CsvImporter {
     private static final String PREFS_NAME = "FlightStatsPrefs";
     private static final String KEY_FLIGHTS_DB_VERSION = "flights_db_version";
     // Bump this whenever AppDatabase.version changes to force a re-import
-    private static final int CURRENT_DB_VERSION = 6; // Bumped to 6 to fix duplicates
+    private static final int CURRENT_DB_VERSION = 7;
 
     public interface ImportCallback {
         void onComplete(int count);
     }
 
     public static void importIfNeeded(Context context, ImportCallback callback) {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        int importedVersion = prefs.getInt(KEY_FLIGHTS_DB_VERSION, -1);
-
-        if (importedVersion == CURRENT_DB_VERSION) {
-            if (callback != null) callback.onComplete(0);
-            return;
-        }
-
         ExecutorService executor = Executors.newSingleThreadExecutor();
         executor.execute(() -> {
             int count = 0;
             try {
                 AppDatabase db = AppDatabase.getDatabase(context);
                 FlightDao dao = db.flightDao();
+                List<Flight> existing = dao.getAllFlights();
 
-                List<Flight> flights = parseCsv(context);
-                if (!flights.isEmpty()) {
-                    dao.deleteAll(); // Clear existing flights to prevent duplicates on forced re-imports
-                    dao.insertAll(flights);
-                    count = flights.size();
+                SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+                int importedVersion = prefs.getInt(KEY_FLIGHTS_DB_VERSION, -1);
+
+                if (existing.isEmpty() || importedVersion != CURRENT_DB_VERSION) {
+                    List<Flight> flights = parseCsv(context);
+                    if (!flights.isEmpty()) {
+                        dao.deleteAll(); // Clear existing flights to prevent duplicates on forced re-imports
+                        dao.insertAll(flights);
+                        count = flights.size();
+                    }
+                    prefs.edit().putInt(KEY_FLIGHTS_DB_VERSION, CURRENT_DB_VERSION).apply();
+                    Log.d(TAG, "Imported " + count + " flights from CSV.");
                 }
-
-                prefs.edit().putInt(KEY_FLIGHTS_DB_VERSION, CURRENT_DB_VERSION).apply();
-                Log.d(TAG, "Imported " + count + " flights from CSV.");
             } catch (Exception e) {
                 Log.e(TAG, "CSV import failed", e);
             }

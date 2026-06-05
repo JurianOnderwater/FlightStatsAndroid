@@ -14,6 +14,8 @@ public class FlightListItem {
     public String seat;
     public String seatClass;
     public String notes;
+    public String departureTime;
+    public String arrivalTime;
 
     // Resolved from Airport table
     public String originCity;
