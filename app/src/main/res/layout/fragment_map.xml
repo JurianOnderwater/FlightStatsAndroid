@@ -1,26 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:fitsSystemWindows="false">
+    android:layout_height="match_parent">
 
-    <!-- 1. The Map -->
+    <!-- 1. Map View -->
     <org.osmdroid.views.MapView
         android:id="@+id/map_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 
-    <!-- 2. Scrim (Dim Background when settings are open) -->
-    <View
-        android:id="@+id/settings_scrim"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#99000000"
-        android:visibility="gone" />
-
-    <!-- 3. Top-Right Floating Controls (safely padded below status bar) -->
+    <!-- 2. Top-Right Floating Profile Button (safely padded below status bar) -->
     <LinearLayout
         android:id="@+id/profile_container"
         android:layout_width="wrap_content"
@@ -36,7 +26,7 @@
             android:layout_width="48dp"
             android:layout_height="48dp"
             app:cardCornerRadius="24dp"
-            app:cardElevation="6dp"
+            app:cardElevation="@dimen/m3_elevation_level2"
             app:cardBackgroundColor="?attr/colorPrimaryContainer"
             app:strokeWidth="0dp"
             android:clickable="true"
@@ -55,502 +45,104 @@
         </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
 
-    <!-- 4. Floating Settings Card Overlay -->
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/card_settings"
-        android:layout_width="340dp"
+    <!-- 3. Bottom-Right Map Actions FAB (safely padded above navigation bar) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_map_action"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:contentDescription="Quick Action"
+        app:srcCompat="@android:drawable/ic_menu_search"
+        app:tint="?attr/colorOnPrimaryContainer"
+        app:backgroundTint="?attr/colorPrimaryContainer" />
+
+    <!-- 4. Quick Action Morph Card Overlay -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_search_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_margin="16dp"
         android:visibility="gone"
-        app:cardCornerRadius="28dp"
         app:cardElevation="8dp"
+        app:strokeWidth="1dp"
+        app:strokeColor="?attr/colorOutlineVariant"
         app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
-        app:strokeWidth="0dp">
+        app:shapeAppearance="@style/ShapeAppearance.FlightStats.Card">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:padding="16dp">
 
-            <!-- Header -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingStart="24dp"
-                android:paddingEnd="24dp"
-                android:paddingTop="24dp"
-                android:paddingBottom="16dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Settings"
-                    android:textSize="24sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="0.0"
-                    android:textColor="?attr/colorOnSurface"
-                    android:layout_marginBottom="16dp"/>
-
-                <!-- Icon-based nav chips replacing TabLayout -->
-                <com.google.android.material.button.MaterialButtonToggleGroup
-                    android:id="@+id/settings_tab_layout"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    app:singleSelection="true"
-                    app:selectionRequired="true">
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/settings_tab_btn_user"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Profile"
-                        android:textSize="12sp"
-                        app:iconGravity="top"
-                        app:iconSize="20dp"
-                        app:icon="@drawable/ic_person"/>
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/settings_tab_btn_map"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Map"
-                        android:textSize="12sp"
-                        app:iconGravity="top"
-                        app:iconSize="20dp"
-                        app:icon="@drawable/ic_map"/>
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/settings_tab_btn_theme"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Theme"
-                        android:textSize="12sp"
-                        app:iconGravity="top"
-                        app:iconSize="20dp"
-                        app:icon="@drawable/ic_palette"/>
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/settings_tab_btn_ai"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="AI"
-                        android:textSize="12sp"
-                        app:iconGravity="top"
-                        app:iconSize="20dp"
-                        app:icon="@drawable/ic_book"/>
-
-                </com.google.android.material.button.MaterialButtonToggleGroup>
-            </LinearLayout>
-
-            <!-- Divider -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="?attr/colorOutlineVariant"/>
-
-            <!-- Tab Contents -->
-            <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="240dp"
-                android:paddingStart="24dp"
-                android:paddingEnd="24dp"
-                android:paddingTop="20dp"
-                android:paddingBottom="4dp">
-
-                <!-- 1. Profile Tab -->
-                <androidx.core.widget.NestedScrollView
-                    android:id="@+id/settings_tab_content_user"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:visibility="visible">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Display Name"
-                            android:textSize="11sp"
-                            android:fontFamily="sans-serif-medium"
-                            android:letterSpacing="0.08"
-                            android:textAllCaps="true"
-                            android:textColor="?attr/colorPrimary"
-                            android:layout_marginBottom="10dp"/>
-
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:id="@+id/input_user_name_layout"
-                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:hint="Your name"
-                            android:layout_marginBottom="16dp"
-                            app:endIconMode="clear_text">
-
-                            <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/input_user_name"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:inputType="textPersonName"/>
-                        </com.google.android.material.textfield.TextInputLayout>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Preferred Unit"
-                            android:textSize="11sp"
-                            android:fontFamily="sans-serif-medium"
-                            android:letterSpacing="0.08"
-                            android:textAllCaps="true"
-                            android:textColor="?attr/colorPrimary"
-                            android:layout_marginBottom="10dp"/>
-
-                        <com.google.android.material.button.MaterialButtonToggleGroup
-                            android:id="@+id/toggle_unit_group"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            app:singleSelection="true"
-                            app:selectionRequired="true"
-                            android:layout_marginBottom="4dp">
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btn_unit_metric"
-                                style="@style/Widget.Material3.Button.OutlinedButton"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Metric (km)"/>
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btn_unit_imperial"
-                                style="@style/Widget.Material3.Button.OutlinedButton"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Imperial (mi)"/>
-                        </com.google.android.material.button.MaterialButtonToggleGroup>
-                    </LinearLayout>
-                </androidx.core.widget.NestedScrollView>
-
-                <!-- 2. Map Tab -->
-                <androidx.core.widget.NestedScrollView
-                    android:id="@+id/settings_tab_content_map"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:visibility="gone">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Home Airport"
-                            android:textSize="11sp"
-                            android:fontFamily="sans-serif-medium"
-                            android:letterSpacing="0.08"
-                            android:textAllCaps="true"
-                            android:textColor="?attr/colorPrimary"
-                            android:layout_marginBottom="10dp"/>
-
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:id="@+id/input_hometown_layout"
-                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:hint="IATA code (e.g. AMS)"
-                            android:layout_marginBottom="16dp"
-                            app:endIconMode="clear_text">
-
-                            <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/input_hometown"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:inputType="textCapCharacters"
-                                android:maxLength="3"/>
-                        </com.google.android.material.textfield.TextInputLayout>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Default Zoom"
-                            android:textSize="11sp"
-                            android:fontFamily="sans-serif-medium"
-                            android:letterSpacing="0.08"
-                            android:textAllCaps="true"
-                            android:textColor="?attr/colorPrimary"
-                            android:layout_marginBottom="6dp"/>
-
-                        <com.google.android.material.slider.Slider
-                            android:id="@+id/slider_zoom"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:valueFrom="4.0"
-                            android:valueTo="12.0"
-                            android:stepSize="0.5"
-                            android:value="4.5"
-                            android:layout_marginBottom="16dp"/>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Route Line Style"
-                            android:textSize="11sp"
-                            android:fontFamily="sans-serif-medium"
-                            android:letterSpacing="0.08"
-                            android:textAllCaps="true"
-                            android:textColor="?attr/colorPrimary"
-                            android:layout_marginBottom="10dp"/>
-
-                        <com.google.android.material.button.MaterialButtonToggleGroup
-                            android:id="@+id/toggle_route_group"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            app:singleSelection="true"
-                            app:selectionRequired="true"
-                            android:layout_marginBottom="4dp">
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btn_route_curved"
-                                style="@style/Widget.Material3.Button.OutlinedButton"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Curved Arcs"/>
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btn_route_straight"
-                                style="@style/Widget.Material3.Button.OutlinedButton"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Straight"/>
-                        </com.google.android.material.button.MaterialButtonToggleGroup>
-                    </LinearLayout>
-                </androidx.core.widget.NestedScrollView>
-
-                <!-- 3. Theme Tab -->
-                <androidx.core.widget.NestedScrollView
-                    android:id="@+id/settings_tab_content_theme"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:visibility="gone">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Appearance"
-                            android:textSize="11sp"
-                            android:fontFamily="sans-serif-medium"
-                            android:letterSpacing="0.08"
-                            android:textAllCaps="true"
-                            android:textColor="?attr/colorPrimary"
-                            android:layout_marginBottom="10dp"/>
-
-                        <com.google.android.material.button.MaterialButtonToggleGroup
-                            android:id="@+id/toggle_theme_group"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            app:singleSelection="true"
-                            app:selectionRequired="true"
-                            android:layout_marginBottom="4dp">
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btn_theme_light"
-                                style="@style/Widget.Material3.Button.OutlinedButton"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Light"
-                                app:icon="@drawable/ic_light_mode"
-                                app:iconGravity="top"
-                                app:iconSize="20dp"/>
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btn_theme_dark"
-                                style="@style/Widget.Material3.Button.OutlinedButton"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Dark"
-                                app:icon="@drawable/ic_dark_mode"
-                                app:iconGravity="top"
-                                app:iconSize="20dp"/>
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btn_theme_system"
-                                style="@style/Widget.Material3.Button.OutlinedButton"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Auto"
-                                app:icon="@drawable/ic_phone_android"
-                                app:iconGravity="top"
-                                app:iconSize="20dp"/>
-                        </com.google.android.material.button.MaterialButtonToggleGroup>
-                    </LinearLayout>
-                </androidx.core.widget.NestedScrollView>
-
-                <!-- 4. AI Tab -->
-                <androidx.core.widget.NestedScrollView
-                    android:id="@+id/settings_tab_content_ai"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:visibility="gone">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="On-Device AI"
-                            android:textSize="11sp"
-                            android:fontFamily="sans-serif-medium"
-                            android:letterSpacing="0.08"
-                            android:textAllCaps="true"
-                            android:textColor="?attr/colorPrimary"
-                            android:layout_marginBottom="12dp"/>
-
-                        <!-- AI toggle row -->
-                        <com.google.android.material.card.MaterialCardView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            app:cardCornerRadius="16dp"
-                            app:cardBackgroundColor="?attr/colorSurfaceContainerHighest"
-                            app:strokeWidth="0dp"
-                            app:cardElevation="0dp"
-                            android:layout_marginBottom="16dp">
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:orientation="horizontal"
-                                android:gravity="center_vertical"
-                                android:padding="16dp">
-
-                                <LinearLayout
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:orientation="vertical">
-
-                                    <TextView
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="Travel Summaries"
-                                        android:textSize="14sp"
-                                        android:fontFamily="sans-serif-medium"
-                                        android:textColor="?attr/colorOnSurface"/>
-
-                                    <TextView
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="Generate on-device summaries in Stats"
-                                        android:textSize="12sp"
-                                        android:textColor="?attr/colorOnSurfaceVariant"
-                                        android:layout_marginTop="2dp"/>
-                                </LinearLayout>
-
-                                <com.google.android.material.materialswitch.MaterialSwitch
-                                    android:id="@+id/switch_ai_overviews"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"/>
-                            </LinearLayout>
-                        </com.google.android.material.card.MaterialCardView>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Summary Tone"
-                            android:textSize="11sp"
-                            android:fontFamily="sans-serif-medium"
-                            android:letterSpacing="0.08"
-                            android:textAllCaps="true"
-                            android:textColor="?attr/colorPrimary"
-                            android:layout_marginBottom="10dp"/>
-
-                        <com.google.android.material.button.MaterialButtonToggleGroup
-                            android:id="@+id/toggle_tone_group"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            app:singleSelection="true"
-                            app:selectionRequired="true"
-                            android:layout_marginBottom="16dp">
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btn_tone_analytical"
-                                style="@style/Widget.Material3.Button.OutlinedButton"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Analytical"/>
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btn_tone_narrative"
-                                style="@style/Widget.Material3.Button.OutlinedButton"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Narrative"/>
-                        </com.google.android.material.button.MaterialButtonToggleGroup>
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_regenerate_all_stories"
-                            style="@style/Widget.Material3.Button.TonalButton"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="Regenerate All Summaries"
-                            app:icon="@drawable/ic_book"
-                            android:layout_marginBottom="4dp"/>
-                    </LinearLayout>
-                </androidx.core.widget.NestedScrollView>
-            </FrameLayout>
-
-            <!-- Divider -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="?attr/colorOutlineVariant"
-                android:layout_marginTop="16dp"/>
-
-            <!-- Action Buttons -->
+            <!-- Title & Close Button Row -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:paddingTop="12dp"
-                android:paddingBottom="16dp"
-                android:gravity="center">
+                android:gravity="center_vertical"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Quick Flight Tools"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorPrimary"
+                    android:fontFamily="@font/comfortaa" />
+
+                <ImageButton
+                    android:id="@+id/btn_close_overlay"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_close_clear_cancel"
+                    app:tint="?attr/colorOnSurfaceVariant"
+                    android:contentDescription="Close" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Search your flight stats or scan a barcode boarding pass to instantly log a new flight."
+                android:textSize="13sp"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:layout_marginBottom="16dp"
+                android:fontFamily="@font/robotoflex" />
+
+            <!-- Actions Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_settings_close"
-                    android:layout_width="match_parent"
+                    android:id="@+id/btn_overlay_scan"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="Close"/>
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:text="Scan Pass"
+                    android:textSize="13sp"
+                    app:icon="@android:drawable/ic_menu_camera" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_overlay_add"
+                    style="@style/Widget.Material3.Button"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Add Flight"
+                    android:textSize="13sp"
+                    app:icon="@android:drawable/ic_input_add" />
             </LinearLayout>
+
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
+
 </FrameLayout>

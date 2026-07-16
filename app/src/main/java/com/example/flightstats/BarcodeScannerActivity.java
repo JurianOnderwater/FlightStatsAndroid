@@ -60,6 +60,7 @@ public class BarcodeScannerActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        androidx.activity.EdgeToEdge.enable(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_barcode_scanner);
 
@@ -75,8 +76,31 @@ public class BarcodeScannerActivity extends AppCompatActivity {
                 .build();
         scanner = BarcodeScanning.getClient(options);
 
-        findViewById(R.id.btn_close).setOnClickListener(v -> finish());
-        findViewById(R.id.btn_gallery).setOnClickListener(v -> pickImageLauncher.launch("image/*"));
+        android.view.View btnClose = findViewById(R.id.btn_close);
+        if (btnClose != null) {
+            btnClose.setOnClickListener(v -> finish());
+            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(btnClose, (v, insets) -> {
+                int topInset = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.statusBars()).top;
+                androidx.constraintlayout.widget.ConstraintLayout.LayoutParams lp = 
+                    (androidx.constraintlayout.widget.ConstraintLayout.LayoutParams) v.getLayoutParams();
+                lp.topMargin = (int) (16 * getResources().getDisplayMetrics().density) + topInset;
+                v.setLayoutParams(lp);
+                return insets;
+            });
+        }
+
+        android.view.View btnGallery = findViewById(R.id.btn_gallery);
+        if (btnGallery != null) {
+            btnGallery.setOnClickListener(v -> pickImageLauncher.launch("image/*"));
+            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(btnGallery, (v, insets) -> {
+                int bottomInset = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars()).bottom;
+                androidx.constraintlayout.widget.ConstraintLayout.LayoutParams lp = 
+                    (androidx.constraintlayout.widget.ConstraintLayout.LayoutParams) v.getLayoutParams();
+                lp.bottomMargin = (int) (48 * getResources().getDisplayMetrics().density) + bottomInset;
+                v.setLayoutParams(lp);
+                return insets;
+            });
+        }
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED) {

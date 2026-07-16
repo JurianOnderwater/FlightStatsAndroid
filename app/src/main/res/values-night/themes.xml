@@ -2,38 +2,38 @@
     <!-- Base application theme. -->
     <style name="Base.Theme.FlightStats" parent="Base.Theme.FlightStats.Common">
         <!-- Customize your dark theme here. -->
-        <!-- Primary (Indigo) -->
-        <item name="colorPrimary">#818CF8</item>
-        <item name="colorOnPrimary">#1E1B4B</item>
-        <item name="colorPrimaryContainer">#312E81</item>
-        <item name="colorOnPrimaryContainer">#E0E7FF</item>
-
-        <!-- Secondary (Sky Blue) -->
-        <item name="colorSecondary">#38BDF8</item>
-        <item name="colorOnSecondary">#0C4A6E</item>
-        <item name="colorSecondaryContainer">#0369A1</item>
-        <item name="colorOnSecondaryContainer">#E0F2FE</item>
-
-        <!-- Tertiary (Amber) -->
-        <item name="colorTertiary">#FBBF24</item>
-        <item name="colorOnTertiary">#451A03</item>
-        <item name="colorTertiaryContainer">#78350F</item>
-        <item name="colorOnTertiaryContainer">#FEF3C7</item>
-
-        <!-- Neutral / Surface colors -->
-        <item name="android:colorBackground">#0F172A</item>
+        <!-- Primary (Willow Green) -->
+        <item name="colorPrimary">#88D18A</item>
+        <item name="colorOnPrimary">#272727</item>
+        <item name="colorPrimaryContainer">#3D5A3E</item>
+        <item name="colorOnPrimaryContainer">#CCDDB7</item>
+ 
+        <!-- Secondary (Burnt Rose) -->
+        <item name="colorSecondary">#873D48</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="colorSecondaryContainer">#5A2931</item>
+        <item name="colorOnSecondaryContainer">#FCE4E6</item>
+ 
+        <!-- Tertiary (Golden Apricot) -->
+        <item name="colorTertiary">#ED9B40</item>
+        <item name="colorOnTertiary">#272727</item>
+        <item name="colorTertiaryContainer">#874E10</item>
+        <item name="colorOnTertiaryContainer">#FFF3E0</item>
+ 
+        <!-- Neutral / Surface colors (Shadow Grey background, light text) -->
+        <item name="android:colorBackground">#272727</item>
         <item name="colorOnBackground">#F8FAFC</item>
-        <item name="colorSurface">#1E293B</item>
+        <item name="colorSurface">#333333</item>
         <item name="colorOnSurface">#F8FAFC</item>
-        <item name="colorSurfaceVariant">#334155</item>
-        <item name="colorOnSurfaceVariant">#94A3B8</item>
-        <item name="colorOutline">#475569</item>
-        <item name="colorOutlineVariant">#334155</item>
-
+        <item name="colorSurfaceVariant">#444444</item>
+        <item name="colorOnSurfaceVariant">#CBD5E1</item>
+        <item name="colorOutline">#555555</item>
+        <item name="colorOutlineVariant">#444444</item>
+ 
         <!-- Surface Container variants for M3 dark mode -->
-        <item name="colorSurfaceContainer">#1E293B</item>
-        <item name="colorSurfaceContainerLow">#0F172A</item>
-        <item name="colorSurfaceContainerHigh">#334155</item>
-        <item name="colorSurfaceContainerHighest">#475569</item>
+        <item name="colorSurfaceContainer">#333333</item>
+        <item name="colorSurfaceContainerLow">#222222</item>
+        <item name="colorSurfaceContainerHigh">#444444</item>
+        <item name="colorSurfaceContainerHighest">#555555</item>
     </style>
 </resources>

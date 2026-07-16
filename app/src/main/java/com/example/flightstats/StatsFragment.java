@@ -61,6 +61,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.carousel.CarouselLayoutManager;
 import com.google.android.material.carousel.CarouselSnapHelper;
 import com.google.android.material.carousel.MaskableFrameLayout;
+import com.google.android.material.carousel.UncontainedCarouselStrategy;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 
@@ -76,7 +77,7 @@ public class StatsFragment extends Fragment {
     private static final String PREFS_CARDS = "StatsCards";
     private static final String[] CARD_IDS   = {"overview", "distance", "longest", "top_airports", "charts", "footprint", "time", "top_routes"};
     private static final String[] CARD_LABELS = {"Overview", "Distance", "Longest Flight", "Top Airports", "Flight Patterns", "Global Footprint", "Time Aloft", "Top Routes"};
-    private static final Set<String> DEFAULT_ON = new HashSet<>(Arrays.asList("overview", "distance", "longest", "top_airports", "charts", "footprint"));
+    private static final Set<String> DEFAULT_ON = new HashSet<>(Arrays.asList("overview", "distance", "longest", "time", "top_airports", "top_routes", "charts", "footprint"));
 
     private View root;
     private BarChart barChart;
@@ -139,6 +140,16 @@ public class StatsFragment extends Fragment {
         if (savedInstanceState != null) {
             selectedYear = savedInstanceState.getString("selectedYear", String.valueOf(Calendar.getInstance().get(Calendar.YEAR)));
         }
+
+        // Initialize missing default carousel cards
+        SharedPreferences cardPrefs = requireContext().getSharedPreferences(PREFS_CARDS, Context.MODE_PRIVATE);
+        if (!cardPrefs.contains("time")) {
+            cardPrefs.edit().putBoolean("time", true).apply();
+        }
+        if (!cardPrefs.contains("top_routes")) {
+            cardPrefs.edit().putBoolean("top_routes", true).apply();
+        }
+
         root = inflater.inflate(R.layout.fragment_stats, container, false);
 
         barChart    = root.findViewById(R.id.bar_chart);
@@ -156,7 +167,7 @@ public class StatsFragment extends Fragment {
 
         statsCarousel = root.findViewById(R.id.stats_carousel);
         if (statsCarousel != null) {
-            statsCarousel.setLayoutManager(new CarouselLayoutManager());
+            statsCarousel.setLayoutManager(new CarouselLayoutManager(new UncontainedCarouselStrategy()));
             new CarouselSnapHelper().attachToRecyclerView(statsCarousel);
             carouselAdapter = new CarouselAdapter(visibleCarouselCardIds, carouselData);
             statsCarousel.setAdapter(carouselAdapter);
@@ -213,7 +224,25 @@ public class StatsFragment extends Fragment {
 
         applyCardVisibility();
         loadStats();
-
+ 
+        View scrollYearChips = root.findViewById(R.id.scroll_year_chips);
+        if (scrollYearChips != null) {
+            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(scrollYearChips, (v, insets) -> {
+                int topInset = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.statusBars()).top;
+                v.setPadding(v.getPaddingLeft(), (int) (8 * getResources().getDisplayMetrics().density) + topInset, v.getPaddingRight(), v.getPaddingBottom());
+                return insets;
+            });
+        }
+ 
+        if (scrollStatsContent != null) {
+            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(scrollStatsContent, (v, insets) -> {
+                int navBarHeight = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars()).bottom;
+                float density = getResources().getDisplayMetrics().density;
+                v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), (int) (96 * density) + navBarHeight);
+                return insets;
+            });
+        }
+ 
         return root;
     }
 
@@ -222,6 +251,7 @@ public class StatsFragment extends Fragment {
         super.onResume();
         applyCardVisibility();
         loadStats();
+        LayoutShapeHelper.applyToView(getView());
     }
 
     // ── Card visibility ───────────────────────────────────────────────────────
@@ -680,6 +710,12 @@ public class StatsFragment extends Fragment {
 
             final boolean aiOverviewsEnabled = settingsPrefs.getBoolean("enable_ai_overviews", true);
 
+            final String finalTopCountry = sortedCountries.isEmpty() ? "" : sortedCountries.get(0).getKey();
+            final int finalSpring = springFlights;
+            final int finalSummer = summerFlights;
+            final int finalAutumn = autumnFlights;
+            final int finalWinter = winterFlights;
+
             // Store chart arrays for toggle switching
             dataByMonth = byMonth;
             dataByDay   = byDay;
@@ -705,6 +741,11 @@ public class StatsFragment extends Fragment {
                 carouselData.topAirports = topAirports;
                 carouselData.topRoutes = topRoutes;
                 carouselData.preferredUnit = preferredUnit;
+                carouselData.springFlights = finalSpring;
+                carouselData.summerFlights = finalSummer;
+                carouselData.autumnFlights = finalAutumn;
+                carouselData.winterFlights = finalWinter;
+                carouselData.topCountry = finalTopCountry;
 
                 // Notify adapter that carousel data has updated
                 if (carouselAdapter != null) {
@@ -1010,9 +1051,9 @@ public class StatsFragment extends Fragment {
                 String tone = settingsPrefs.getString("ai_summary_tone", "analytical");
                 String toneInstruction;
                 if ("narrative".equals(tone)) {
-                    toneInstruction = "Write in a warm, narrative, and conversational travel log style. Flowing prose only, no bullet lists. Max 2 short paragraphs.";
+                    toneInstruction = "Write in a warm, narrative, and conversational travel log style. Flowing prose only, no bullet lists. Limit to a maximum of 8 lines of text total (under 500 characters).";
                 } else {
-                    toneInstruction = "Write in an analytical, concise, and structured style. Use a bulleted list for key highlights and statistics.";
+                    toneInstruction = "Write in an analytical, concise, and structured style. Limit to a bulleted list of 3-5 key highlights, maximum 8 lines of text total (under 500 characters).";
                 }
 
                 String unitPrefVal = settingsPrefs.getString("preferred_unit", "km");
@@ -1023,20 +1064,30 @@ public class StatsFragment extends Fragment {
                     unitName = "miles";
                 }
 
-                String prompt = "Write a short travel summary for " + selectedYear + ", addressing the reader as 'you'. " +
+                String prompt = "Write a very short travel summary for " + selectedYear + ", addressing the reader as 'you'. " +
                     toneInstruction + " " +
-                    "Stick to the facts below — do not invent destinations or activities. " +
+                    "Do NOT include any title, header, or markdown headings (do not start with ## or ###). Start directly with the text. " +
+                    "Stick to the facts below — do not invent destinations. " +
                     "Stats: " + flights + " flights, " + (int)distanceVal + " " + unitName + " total. " +
                     "Countries: " + countryList + ". " +
-                    "Flights in order: " + tripList + ". " +
-                    "Group legs into trips where logical. Bold place names and key numbers. No emojis.";
+                    "Flights: " + tripList + ". " +
+                    "Bold place names and key numbers. No emojis.";
 
-                GenerativeModelFutures generativeModelFutures = GenerativeModelFutures.from(Generation.INSTANCE.getClient());
+                com.google.mlkit.genai.prompt.ModelConfig.Builder modelConfigBuilder = new com.google.mlkit.genai.prompt.ModelConfig.Builder();
+                modelConfigBuilder.setReleaseStage(com.google.mlkit.genai.prompt.ModelReleaseStage.PREVIEW);
+                modelConfigBuilder.setPreference(com.google.mlkit.genai.prompt.ModelPreference.FAST);
+                com.google.mlkit.genai.prompt.ModelConfig modelConfig = modelConfigBuilder.build();
+
+                com.google.mlkit.genai.prompt.GenerationConfig.Builder genConfigBuilder = new com.google.mlkit.genai.prompt.GenerationConfig.Builder();
+                genConfigBuilder.setModelConfig(modelConfig);
+                com.google.mlkit.genai.prompt.GenerationConfig genConfig = genConfigBuilder.build();
+
+                GenerativeModelFutures generativeModelFutures = GenerativeModelFutures.from(Generation.INSTANCE.getClient(genConfig));
 
                 GenerateContentRequest.Builder requestBuilder = new GenerateContentRequest.Builder(new TextPart(prompt));
                 requestBuilder.setTemperature(0.7f);
                 requestBuilder.setMaxOutputTokens(256);
-                GenerateContentRequest request = requestBuilder.build();
+                final GenerateContentRequest request = requestBuilder.build();
                 
                 ListenableFuture<GenerateContentResponse> future = generativeModelFutures.generateContent(request);
                 
@@ -1059,7 +1110,36 @@ public class StatsFragment extends Fragment {
 
                     @Override
                     public void onFailure(Throwable t) {
-                        fallbackToOrganic(dialog, t.getMessage() != null ? t.getMessage() : t.toString());
+                        String msg = t.getMessage() != null ? t.getMessage() : t.toString();
+                        if (msg.contains("606") || msg.contains("FEATURE_NOT_FOUND")) {
+                            android.util.Log.w("StatsFragment", "Preview model not found. Falling back to stable model...");
+                            try {
+                                GenerativeModelFutures stableClient = GenerativeModelFutures.from(Generation.INSTANCE.getClient());
+                                ListenableFuture<GenerateContentResponse> stableFuture = stableClient.generateContent(request);
+                                com.google.common.util.concurrent.Futures.addCallback(stableFuture, new com.google.common.util.concurrent.FutureCallback<GenerateContentResponse>() {
+                                    @Override
+                                    public void onSuccess(GenerateContentResponse stableResult) {
+                                        String generatedStory = stableResult.getCandidates().get(0).getText();
+                                        SharedPreferences settingsPrefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
+                                        settingsPrefs.edit().putString("saved_story_" + selectedYear, generatedStory).apply();
+                                        
+                                        new Handler(Looper.getMainLooper()).post(() -> {
+                                            dialog.dismiss();
+                                            loadStats();
+                                        });
+                                    }
+
+                                    @Override
+                                    public void onFailure(Throwable stableT) {
+                                        fallbackToOrganic(dialog, stableT.getMessage() != null ? stableT.getMessage() : stableT.toString());
+                                    }
+                                }, Executors.newSingleThreadExecutor());
+                            } catch (Exception ex) {
+                                fallbackToOrganic(dialog, ex.getMessage() != null ? ex.getMessage() : ex.toString());
+                            }
+                        } else {
+                            fallbackToOrganic(dialog, msg);
+                        }
                     }
                 }, Executors.newSingleThreadExecutor());
 
@@ -1070,6 +1150,7 @@ public class StatsFragment extends Fragment {
     }
 
     private void fallbackToOrganic(androidx.appcompat.app.AlertDialog dialog, String errorMsg) {
+        android.util.Log.e("StatsFragment", "AI Generation error: " + errorMsg);
         SharedPreferences settingsPrefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
         int currentVersion = settingsPrefs.getInt("story_regen_version_" + selectedYear, 0);
         settingsPrefs.edit().putInt("story_regen_version_" + selectedYear, currentVersion + 1).apply();
@@ -1084,14 +1165,24 @@ public class StatsFragment extends Fragment {
         });
     }
 
-    private void populateViewHolderList(LinearLayout container, List<String> items, boolean onSecondary) {
+    private static class ThemeVibe {
+        int primaryColor;
+        int cardBgColor;
+        int strokeColor;
+        int subcardBgColor;
+        int subcardStrokeColor;
+        int textColor;
+        int textSecondaryColor;
+    }
+
+    private void populateViewHolderList(LinearLayout container, List<String> items, ThemeVibe vibe) {
         if (container == null) return;
         container.removeAllViews();
         float density = container.getContext().getResources().getDisplayMetrics().density;
-        int primaryColor = resolveColor(androidx.appcompat.R.attr.colorPrimary);
-        int textColor = resolveColor(com.google.android.material.R.attr.colorOnSurface);
-        int surfaceVariantColor = resolveColor(com.google.android.material.R.attr.colorSurfaceVariant);
-        int outlineVariantColor = resolveColor(com.google.android.material.R.attr.colorOutlineVariant);
+        int primaryColor = vibe.primaryColor;
+        int textColor = vibe.textColor;
+        int surfaceVariantColor = vibe.subcardBgColor;
+        int outlineVariantColor = vibe.subcardStrokeColor;
 
         for (int i = 0; i < Math.min(3, items.size()); i++) {
             com.google.android.material.card.MaterialCardView subcard = new com.google.android.material.card.MaterialCardView(container.getContext());
@@ -1116,7 +1207,7 @@ public class StatsFragment extends Fragment {
             TextView rank = new TextView(container.getContext());
             rank.setText(String.valueOf(i + 1));
             rank.setTextSize(10f);
-            rank.setTextColor(resolveColor(com.google.android.material.R.attr.colorOnPrimary));
+            rank.setTextColor(vibe.cardBgColor); // Contrast badge text with primary fill
             rank.setTypeface(null, android.graphics.Typeface.BOLD);
             int badgeSize = Math.round(20 * density);
             float cornerRadius = badgeSize * 0.30f;
@@ -1152,6 +1243,12 @@ public class StatsFragment extends Fragment {
         List<String> topAirports = new ArrayList<>();
         List<String> topRoutes = new ArrayList<>();
         String preferredUnit = "km";
+
+        int springFlights = 0;
+        int summerFlights = 0;
+        int autumnFlights = 0;
+        int winterFlights = 0;
+        String topCountry = "";
     }
 
     private class CarouselAdapter extends RecyclerView.Adapter<CarouselAdapter.ViewHolder> {
@@ -1161,6 +1258,260 @@ public class StatsFragment extends Fragment {
         CarouselAdapter(List<String> cardIds, CarouselData data) {
             this.cardIds = cardIds;
             this.data = data;
+        }
+
+        private ThemeVibe getThemeVibe(CarouselData data, android.content.Context context) {
+            // Default values resolved from theme attributes
+            TypedValue tvPrimary = new TypedValue();
+            TypedValue tvSurface = new TypedValue();
+            TypedValue tvOutline = new TypedValue();
+            TypedValue tvOnSurface = new TypedValue();
+            TypedValue tvOnSurfaceVariant = new TypedValue();
+            TypedValue tvSurfaceVariant = new TypedValue();
+            TypedValue tvOutlineVariant = new TypedValue();
+
+            context.getTheme().resolveAttribute(androidx.appcompat.R.attr.colorPrimary, tvPrimary, true);
+            context.getTheme().resolveAttribute(com.google.android.material.R.attr.colorSurface, tvSurface, true);
+            context.getTheme().resolveAttribute(com.google.android.material.R.attr.colorOutline, tvOutline, true);
+            context.getTheme().resolveAttribute(com.google.android.material.R.attr.colorOnSurface, tvOnSurface, true);
+            context.getTheme().resolveAttribute(com.google.android.material.R.attr.colorOnSurfaceVariant, tvOnSurfaceVariant, true);
+            context.getTheme().resolveAttribute(com.google.android.material.R.attr.colorSurfaceVariant, tvSurfaceVariant, true);
+            context.getTheme().resolveAttribute(com.google.android.material.R.attr.colorOutlineVariant, tvOutlineVariant, true);
+
+            ThemeVibe vibe = new ThemeVibe();
+            vibe.primaryColor = tvPrimary.data;
+            vibe.cardBgColor = tvSurface.data;
+            vibe.strokeColor = tvOutline.data;
+            vibe.subcardBgColor = tvSurfaceVariant.data;
+            vibe.subcardStrokeColor = tvOutlineVariant.data;
+            vibe.textColor = tvOnSurface.data;
+            vibe.textSecondaryColor = tvOnSurfaceVariant.data;
+
+            // Determine dominant season of flights
+            String dominantSeason = "";
+            int maxFlights = 0;
+            if (data.springFlights > maxFlights) { maxFlights = data.springFlights; dominantSeason = "spring"; }
+            if (data.summerFlights > maxFlights) { maxFlights = data.summerFlights; dominantSeason = "summer"; }
+            if (data.autumnFlights > maxFlights) { maxFlights = data.autumnFlights; dominantSeason = "autumn"; }
+            if (data.winterFlights > maxFlights) { maxFlights = data.winterFlights; dominantSeason = "winter"; }
+
+            // Check if top country code is valid
+            String country = data.topCountry != null ? data.topCountry.trim().toUpperCase() : "";
+
+            // Check if system dark mode is active
+            boolean isDark = (context.getResources().getConfiguration().uiMode & 
+                              android.content.res.Configuration.UI_MODE_NIGHT_MASK) == 
+                              android.content.res.Configuration.UI_MODE_NIGHT_YES;
+
+            if (isDark) {
+                // Dark theme customized travel color schemes
+                if ("NETHERLANDS".equals(country) || "NL".equals(country)) {
+                    vibe.cardBgColor = 0xFF14223D; // Dark royal navy
+                    vibe.strokeColor = 0xFF2A4270;
+                    vibe.primaryColor = 0xFF85B0FF; // Ice blue
+                    vibe.subcardBgColor = 0xFF2A1C10; // Dark burnt copper
+                    vibe.subcardStrokeColor = 0xFF4F331A;
+                    vibe.textColor = 0xFFE2ECFE;
+                    vibe.textSecondaryColor = 0xFFAEC4EC;
+                } else if ("UNITED STATES".equals(country) || "US".equals(country) || "UNITED KINGDOM".equals(country) || "GB".equals(country)) {
+                    vibe.cardBgColor = 0xFF1C1B24; // Slate dark purple
+                    vibe.strokeColor = 0xFF353444;
+                    vibe.primaryColor = 0xFFA5B4FC; // Soothing blue-indigo
+                    vibe.subcardBgColor = 0xFF2D1F23; // Velvet rose
+                    vibe.subcardStrokeColor = 0xFF4C2F36;
+                    vibe.textColor = 0xFFE2E8F0;
+                    vibe.textSecondaryColor = 0xFF94A3B8;
+                } else if ("JAPAN".equals(country) || "JP".equals(country)) {
+                    vibe.cardBgColor = 0xFF24151B; // Deep dark cherry burgundy
+                    vibe.strokeColor = 0xFF442632;
+                    vibe.primaryColor = 0xFFFF85A1; // Neon cherry blossom pink
+                    vibe.subcardBgColor = 0xFF34171A; // Dark zen crimson
+                    vibe.subcardStrokeColor = 0xFF582329;
+                    vibe.textColor = 0xFFFFF0F3;
+                    vibe.textSecondaryColor = 0xFFDDA6B2;
+                } else if ("FRANCE".equals(country) || "FR".equals(country)) {
+                    vibe.cardBgColor = 0xFF191629; // Lavender twilight
+                    vibe.strokeColor = 0xFF322A4E;
+                    vibe.primaryColor = 0xFFC7B3FF; // Light lavender neon
+                    vibe.subcardBgColor = 0xFF152332; // Riviera navy
+                    vibe.subcardStrokeColor = 0xFF253E5A;
+                    vibe.textColor = 0xFFECE7FA;
+                    vibe.textSecondaryColor = 0xFFAAA0CC;
+                } else if (!dominantSeason.isEmpty()) {
+                    switch (dominantSeason) {
+                        case "spring":
+                            vibe.cardBgColor = 0xFF132717; // Deep dark forest green
+                            vibe.strokeColor = 0xFF26492E;
+                            vibe.primaryColor = 0xFF6CDE8A; // Light mint
+                            vibe.subcardBgColor = 0xFF292113; // Dark bronze blossom
+                            vibe.subcardStrokeColor = 0xFF4E3E23;
+                            vibe.textColor = 0xFFEBF7ED;
+                            vibe.textSecondaryColor = 0xFFA4C7AC;
+                            break;
+                        case "summer":
+                            vibe.cardBgColor = 0xFF242211; // Gold-tinted charcoal
+                            vibe.strokeColor = 0xFF453F1D;
+                            vibe.primaryColor = 0xFFFFC760; // Sun gold
+                            vibe.subcardBgColor = 0xFF11253C; // Night ocean blue
+                            vibe.subcardStrokeColor = 0xFF213F63;
+                            vibe.textColor = 0xFFFFF9ED;
+                            vibe.textSecondaryColor = 0xFFC6BEB2;
+                            break;
+                        case "autumn":
+                            vibe.cardBgColor = 0xFF28181B; // Deep dark maple/chocolate
+                            vibe.strokeColor = 0xFF482B2E;
+                            vibe.primaryColor = 0xFFFF8F9D; // Maple red
+                            vibe.subcardBgColor = 0xFF2D1F15; // Pumpkin bronze
+                            vibe.subcardStrokeColor = 0xFF513824;
+                            vibe.textColor = 0xFFFFF1F2;
+                            vibe.textSecondaryColor = 0xFFCAB3B5;
+                            break;
+                        case "winter":
+                            vibe.cardBgColor = 0xFF111E26; // Frosty dark slate
+                            vibe.strokeColor = 0xFF223642;
+                            vibe.primaryColor = 0xFF82C8E5; // Frosted neon cyan
+                            vibe.subcardBgColor = 0xFF1A261D; // Frosty pine dark green
+                            vibe.subcardStrokeColor = 0xFF2C4232;
+                            vibe.textColor = 0xFFEFF8FB;
+                            vibe.textSecondaryColor = 0xFFB3C5CB;
+                            break;
+                    }
+                }
+            } else {
+                // Light theme customized travel color schemes
+                if ("NETHERLANDS".equals(country) || "NL".equals(country)) {
+                    vibe.cardBgColor = 0xFFF0F4FC; // Delft blue wash
+                    vibe.strokeColor = 0xFFADC2EB;
+                    vibe.primaryColor = 0xFF003399; // Delft royal blue text
+                    vibe.subcardBgColor = 0xFFFFEDE0; // Tulip orange
+                    vibe.subcardStrokeColor = 0xFFFFC299;
+                    vibe.textColor = 0xFF001A4D;
+                    vibe.textSecondaryColor = 0xFF4D6699;
+                } else if ("UNITED STATES".equals(country) || "US".equals(country) || "UNITED KINGDOM".equals(country) || "GB".equals(country)) {
+                    vibe.cardBgColor = 0xFFF2F1F8; // Light slate lilac
+                    vibe.strokeColor = 0xFFCCD1E4;
+                    vibe.primaryColor = 0xFF1A365D; // Navy blue text
+                    vibe.subcardBgColor = 0xFFFDE8E8; // Soft rose cream
+                    vibe.subcardStrokeColor = 0xFFF8B4B4;
+                    vibe.textColor = 0xFF0F172A;
+                    vibe.textSecondaryColor = 0xFF475569;
+                } else if ("JAPAN".equals(country) || "JP".equals(country)) {
+                    vibe.cardBgColor = 0xFFFFF5F5; // Cherry blossom wash
+                    vibe.strokeColor = 0xFFFFD1D1;
+                    vibe.primaryColor = 0xFF990033; // Zen crimson text
+                    vibe.subcardBgColor = 0xFFFDF2F4; // Peach sakura
+                    vibe.subcardStrokeColor = 0xFFECC4C9;
+                    vibe.textColor = 0xFF3D0012;
+                    vibe.textSecondaryColor = 0xFF7D5A61;
+                } else if ("FRANCE".equals(country) || "FR".equals(country)) {
+                    vibe.cardBgColor = 0xFFF7F5FC; // Pale lavender mist
+                    vibe.strokeColor = 0xFFE2DCF3;
+                    vibe.primaryColor = 0xFF4A3E9C; // Royal purple text
+                    vibe.subcardBgColor = 0xFFEBF3FC; // Riviera blue
+                    vibe.subcardStrokeColor = 0xFFBCD4F4;
+                    vibe.textColor = 0xFF1C1340;
+                    vibe.textSecondaryColor = 0xFF5D518C;
+                } else if (!dominantSeason.isEmpty()) {
+                    switch (dominantSeason) {
+                        case "spring":
+                            vibe.cardBgColor = 0xFFF3FBF4; // Meadow green wash
+                            vibe.strokeColor = 0xFFC6ECD0;
+                            vibe.primaryColor = 0xFF1E6F33; // Deep leafy green
+                            vibe.subcardBgColor = 0xFFFFF7EB; // Blossom peach
+                            vibe.subcardStrokeColor = 0xFFFFE5BF;
+                            vibe.textColor = 0xFF0D3216;
+                            vibe.textSecondaryColor = 0xFF4B6E53;
+                            break;
+                        case "summer":
+                            vibe.cardBgColor = 0xFFFFFBF0; // Sunny light gold
+                            vibe.strokeColor = 0xFFFFEBAA;
+                            vibe.primaryColor = 0xFFC26E00; // Golden orange-brown
+                            vibe.subcardBgColor = 0xFFE3F2FD; // Sky blue
+                            vibe.subcardStrokeColor = 0xFFBBDEFB;
+                            vibe.textColor = 0xFF422200;
+                            vibe.textSecondaryColor = 0xFF6D5F4D;
+                            break;
+                        case "autumn":
+                            vibe.cardBgColor = 0xFFFCF4F4; // Burnt rose cream
+                            vibe.strokeColor = 0xFFF3D5D5;
+                            vibe.primaryColor = 0xFF8A2E3B; // Maple red
+                            vibe.subcardBgColor = 0xFFFEF5EC; // Pumpkin cream
+                            vibe.subcardStrokeColor = 0xFFEED5BF;
+                            vibe.textColor = 0xFF3E1117;
+                            vibe.textSecondaryColor = 0xFF6E5659;
+                            break;
+                        case "winter":
+                            vibe.cardBgColor = 0xFFF1F7F9; // Cool frosty ice
+                            vibe.strokeColor = 0xFFD2E3E8;
+                            vibe.primaryColor = 0xFF1E5164; // Glacier teal
+                            vibe.subcardBgColor = 0xFFF3F6F2; // Snowy pine green
+                            vibe.subcardStrokeColor = 0xFFD3E0D1;
+                            vibe.textColor = 0xFF081C24;
+                            vibe.textSecondaryColor = 0xFF4E5E64;
+                            break;
+                    }
+                }
+            }
+
+            return vibe;
+        }
+
+        private void tintSubcards(ViewGroup parent, ThemeVibe vibe) {
+            for (int i = 0; i < parent.getChildCount(); i++) {
+                View child = parent.getChildAt(i);
+                if (child instanceof com.google.android.material.card.MaterialCardView) {
+                    com.google.android.material.card.MaterialCardView subcard = (com.google.android.material.card.MaterialCardView) child;
+                    subcard.setCardBackgroundColor(android.content.res.ColorStateList.valueOf(vibe.subcardBgColor));
+                    subcard.setStrokeColor(android.content.res.ColorStateList.valueOf(vibe.subcardStrokeColor));
+                }
+                if (child instanceof ViewGroup) {
+                    tintSubcards((ViewGroup) child, vibe);
+                }
+            }
+        }
+
+        private void tintTextViews(ViewGroup parent, ThemeVibe vibe) {
+            for (int i = 0; i < parent.getChildCount(); i++) {
+                View child = parent.getChildAt(i);
+                if (child instanceof TextView) {
+                    TextView tv = (TextView) child;
+                    int id = tv.getId();
+                    if (id == R.id.stat_km || id == R.id.stat_longest_origin || id == R.id.stat_longest_dest || id == R.id.stat_hours) {
+                        tv.setTextColor(vibe.primaryColor);
+                    } else if (id == R.id.label_miles || id == R.id.stat_longest_detail || id == R.id.stat_days) {
+                        tv.setTextColor(vibe.textSecondaryColor);
+                    } else {
+                        if (id == R.id.stat_miles || id == R.id.stat_circumnavigations || id == R.id.stat_moon) {
+                            tv.setTextColor(vibe.textColor);
+                        } else {
+                            tv.setTextColor(vibe.textColor);
+                        }
+                    }
+                }
+                if (child instanceof ViewGroup) {
+                    tintTextViews((ViewGroup) child, vibe);
+                }
+            }
+        }
+
+        private void applySubcardShapes(View view, int shapeFamily, float baseRadius, float density) {
+            if (view instanceof com.google.android.material.card.MaterialCardView && view.getParent() instanceof ViewGroup) {
+                boolean isRoot = view.getParent() instanceof com.google.android.material.carousel.MaskableFrameLayout;
+                if (!isRoot) {
+                    com.google.android.material.card.MaterialCardView subcard = (com.google.android.material.card.MaterialCardView) view;
+                    float radius = baseRadius * 0.625f * density;
+                    com.google.android.material.shape.ShapeAppearanceModel model = subcard.getShapeAppearanceModel().toBuilder()
+                            .setAllCorners(shapeFamily, radius)
+                            .build();
+                    subcard.setShapeAppearanceModel(model);
+                }
+            }
+            if (view instanceof ViewGroup) {
+                ViewGroup vg = (ViewGroup) view;
+                for (int i = 0; i < vg.getChildCount(); i++) {
+                    applySubcardShapes(vg.getChildAt(i), shapeFamily, baseRadius, density);
+                }
+            }
         }
 
         @Override
@@ -1191,59 +1542,31 @@ public class StatsFragment extends Fragment {
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             int layoutId = getLayoutForViewType(viewType);
-            View view = LayoutInflater.from(parent.getContext()).inflate(layoutId, parent, false);
-            
-            MaskableFrameLayout container = new MaskableFrameLayout(parent.getContext());
-            
-            float density = parent.getContext().getResources().getDisplayMetrics().density;
-            int widthPx = Math.round(220 * density);
-            int heightPx = Math.round(220 * density);
-            int marginHorizontalPx = 0;
-            
-            ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(widthPx, heightPx);
-            lp.setMargins(marginHorizontalPx, 0, marginHorizontalPx, 0);
-            container.setLayoutParams(lp);
-
-            // Set shape appearance model to rectangular so the card's own rounded corners and outlines are not clipped
-            ShapeAppearanceModel shapeAppearanceModel = ShapeAppearanceModel.builder()
-                .setAllCornerSizes(0f)
-                .build();
-            container.setShapeAppearanceModel(shapeAppearanceModel);
-
-            // Resizes and centers card content within the mask bounds as card scrolls away (preserving corners and outlines)
-            container.setOnMaskChangedListener(new com.google.android.material.carousel.OnMaskChangedListener() {
-                @Override
-                public void onMaskChanged(android.graphics.RectF maskRect) {
-                    float containerWidth = container.getWidth();
-                    if (containerWidth == 0) {
-                        containerWidth = 220f * density;
+            final MaskableFrameLayout container = (MaskableFrameLayout) LayoutInflater.from(parent.getContext()).inflate(layoutId, parent, false);
+            final View card = container.getChildAt(0);
+            if (card != null) {
+                container.setOnMaskChangedListener(new com.google.android.material.carousel.OnMaskChangedListener() {
+                    @Override
+                    public void onMaskChanged(android.graphics.RectF maskRect) {
+                        float containerWidth = container.getWidth();
+                        if (containerWidth == 0) {
+                            containerWidth = 220f * container.getResources().getDisplayMetrics().density;
+                        }
+                        float maskWidth = maskRect.width();
+                        
+                        float scaleX = maskWidth / containerWidth;
+                        if (scaleX < 0f) scaleX = 0f;
+                        if (scaleX > 1f) scaleX = 1f;
+                        
+                        float maskCenter = maskRect.centerX();
+                        float containerCenter = containerWidth / 2f;
+                        float translationX = maskCenter - containerCenter;
+                        
+                        card.setScaleX(scaleX);
+                        card.setTranslationX(translationX);
                     }
-                    float maskWidth = maskRect.width();
-                    
-                    // Maintain a consistent gap/padding of 8dp between items by making the visual card width slightly smaller than the mask
-                    float gapPx = 8f * density;
-                    float targetWidth = Math.max(0f, maskWidth - gapPx);
-
-                    float scale = targetWidth / containerWidth;
-                    if (scale < 0f) scale = 0f;
-                    if (scale > 1f) scale = 1f;
-
-                    float maskCenter = maskRect.centerX();
-                    float containerCenter = containerWidth / 2f;
-                    float translationX = maskCenter - containerCenter;
-
-                    // Scale horizontally (squish) and keep vertical scale at 1f (same height)
-                    view.setScaleX(scale);
-                    view.setScaleY(1f);
-                    view.setTranslationX(translationX);
-                }
-            });
-            
-            container.addView(view, new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            ));
-            
+                });
+            }
             return new ViewHolder(container, viewType);
         }
 
@@ -1252,6 +1575,39 @@ public class StatsFragment extends Fragment {
             int viewType = getItemViewType(position);
             View card = holder.container.getChildAt(0);
             if (card == null) return;
+
+            // Resolve dynamic contextual theme vibe
+            ThemeVibe vibe = getThemeVibe(data, card.getContext());
+
+            // Load shape preferences
+            android.content.SharedPreferences prefs = android.preference.PreferenceManager.getDefaultSharedPreferences(card.getContext());
+            String shapeFamilyStr = prefs.getString("shape_family", "rounded");
+            int shapeFamily = "cut".equals(shapeFamilyStr) ? com.google.android.material.shape.CornerFamily.CUT : com.google.android.material.shape.CornerFamily.ROUNDED;
+            float baseRadius = prefs.getFloat("shape_radius", 16f);
+            float density = card.getContext().getResources().getDisplayMetrics().density;
+
+            // Generate standard shape appearance model for this card
+            float radius = baseRadius * 1.75f * density;
+            com.google.android.material.shape.ShapeAppearanceModel cardShape = com.google.android.material.shape.ShapeAppearanceModel.builder()
+                    .setAllCorners(shapeFamily, radius)
+                    .build();
+            holder.container.setShapeAppearanceModel(cardShape);
+
+            // Tint root card view and apply custom shape appearance
+            if (card instanceof com.google.android.material.card.MaterialCardView) {
+                com.google.android.material.card.MaterialCardView rootCard = (com.google.android.material.card.MaterialCardView) card;
+                rootCard.setCardBackgroundColor(android.content.res.ColorStateList.valueOf(vibe.cardBgColor));
+                rootCard.setStrokeColor(android.content.res.ColorStateList.valueOf(vibe.strokeColor));
+                rootCard.setShapeAppearanceModel(cardShape);
+            }
+
+            // Tint subcards (recursive)
+            if (card instanceof ViewGroup) {
+                tintSubcards((ViewGroup) card, vibe);
+            }
+
+            // Apply card shape style to inner subcards (recursive)
+            applySubcardShapes(card, shapeFamily, baseRadius, density);
             
             String preferredUnit = data.preferredUnit;
             double km = data.km;
@@ -1311,14 +1667,19 @@ public class StatsFragment extends Fragment {
                 }
                 case 3: {
                     LinearLayout listAirports = card.findViewById(R.id.list_top_airports);
-                    populateViewHolderList(listAirports, data.topAirports, false);
+                    populateViewHolderList(listAirports, data.topAirports, vibe);
                     break;
                 }
                 case 4: {
                     LinearLayout listRoutes = card.findViewById(R.id.list_top_routes);
-                    populateViewHolderList(listRoutes, data.topRoutes, true);
+                    populateViewHolderList(listRoutes, data.topRoutes, vibe);
                     break;
                 }
+            }
+
+            // Tint text views (recursive) at the end so it covers dynamic list row text views too!
+            if (card instanceof ViewGroup) {
+                tintTextViews((ViewGroup) card, vibe);
             }
         }
 

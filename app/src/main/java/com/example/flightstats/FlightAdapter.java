@@ -53,6 +53,9 @@ public class FlightAdapter extends RecyclerView.Adapter<FlightAdapter.ViewHolder
         FlightListItem item = flights.get(position);
         boolean expanded = (expandedId == item.id);
 
+        // Apply Card Shape Theme preference dynamically
+        LayoutShapeHelper.applyToView(h.itemView);
+
         // ── Collapsed row ──
         h.tvOriginFlag.setText(FlightListItem.countryToFlag(item.originCountry));
         h.tvOrigin.setText(item.origin);

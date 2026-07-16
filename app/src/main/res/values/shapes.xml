@@ -33,4 +33,10 @@
         <item name="cornerSize">28dp</item>
     </style>
 
+    <!-- Standard Card Shape: 16dp rounded corners (Material 3 Large shape style) -->
+    <style name="ShapeAppearance.FlightStats.Card" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">16dp</item>
+    </style>
+
 </resources>

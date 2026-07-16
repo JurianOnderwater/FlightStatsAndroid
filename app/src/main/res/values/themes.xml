@@ -6,33 +6,34 @@
         <item name="android:windowLightStatusBar" tools:targetApi="m">?attr/isLightTheme</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">?attr/isLightTheme</item>
         <item name="android:enforceNavigationBarContrast" tools:targetApi="q">false</item>
+        <item name="fontFamily">@font/quicksand</item>
     </style>
 
     <!-- Base application theme. -->
     <style name="Base.Theme.FlightStats" parent="Base.Theme.FlightStats.Common">
-        <!-- Primary (Indigo) -->
-        <item name="colorPrimary">#4F46E5</item>
+        <!-- Primary (Dark Sage Green for readability, Willow Green for container) -->
+        <item name="colorPrimary">#3A6B45</item>
         <item name="colorOnPrimary">#FFFFFF</item>
-        <item name="colorPrimaryContainer">#E0E7FF</item>
-        <item name="colorOnPrimaryContainer">#312E81</item>
+        <item name="colorPrimaryContainer">#CCDDB7</item>
+        <item name="colorOnPrimaryContainer">#272727</item>
 
-        <!-- Secondary (Sky Blue) -->
-        <item name="colorSecondary">#0284C7</item>
+        <!-- Secondary (Burnt Rose) -->
+        <item name="colorSecondary">#873D48</item>
         <item name="colorOnSecondary">#FFFFFF</item>
-        <item name="colorSecondaryContainer">#E0F2FE</item>
-        <item name="colorOnSecondaryContainer">#0369A1</item>
+        <item name="colorSecondaryContainer">#FCE4E6</item>
+        <item name="colorOnSecondaryContainer">#873D48</item>
 
-        <!-- Tertiary (Amber) -->
-        <item name="colorTertiary">#D97706</item>
-        <item name="colorOnTertiary">#FFFFFF</item>
-        <item name="colorTertiaryContainer">#FEF3C7</item>
-        <item name="colorOnTertiaryContainer">#78350F</item>
+        <!-- Tertiary (Golden Apricot) -->
+        <item name="colorTertiary">#ED9B40</item>
+        <item name="colorOnTertiary">#272727</item>
+        <item name="colorTertiaryContainer">#FFF3E0</item>
+        <item name="colorOnTertiaryContainer">#873D00</item>
 
-        <!-- Neutral / Surface colors -->
+        <!-- Neutral / Surface colors (Shadow Grey text, Slate background) -->
         <item name="android:colorBackground">#F8FAFC</item>
-        <item name="colorOnBackground">#0F172A</item>
+        <item name="colorOnBackground">#272727</item>
         <item name="colorSurface">#FFFFFF</item>
-        <item name="colorOnSurface">#0F172A</item>
+        <item name="colorOnSurface">#272727</item>
         <item name="colorSurfaceVariant">#F1F5F9</item>
         <item name="colorOnSurfaceVariant">#475569</item>
         <item name="colorOutline">#CBD5E1</item>

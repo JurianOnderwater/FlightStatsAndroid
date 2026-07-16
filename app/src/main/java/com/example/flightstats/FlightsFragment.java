@@ -13,6 +13,9 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
 
 import com.example.flightstats.data.Airport;
 import com.example.flightstats.data.AppDatabase;
@@ -71,7 +74,45 @@ public class FlightsFragment extends Fragment {
             sheet.show(getChildFragmentManager(), "add_flight");
         });
 
+        View headerContainer = view.findViewById(R.id.flights_header_container);
+        if (headerContainer != null) {
+            ViewCompat.setOnApplyWindowInsetsListener(headerContainer, (v, insets) -> {
+                int topInset = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
+                v.setPadding(v.getPaddingLeft(), (int) (16 * getResources().getDisplayMetrics().density) + topInset, v.getPaddingRight(), v.getPaddingBottom());
+                return insets;
+            });
+        }
+
+        if (rv != null) {
+            ViewCompat.setOnApplyWindowInsetsListener(rv, (v, insets) -> {
+                int navBarHeight = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom;
+                float density = getResources().getDisplayMetrics().density;
+                v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), (int) (80 * density) + navBarHeight);
+                return insets;
+            });
+        }
+
+        if (fabAddFlight != null) {
+            ViewCompat.setOnApplyWindowInsetsListener(fabAddFlight, (v, insets) -> {
+                int navBarHeight = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom;
+                float density = getResources().getDisplayMetrics().density;
+                CoordinatorLayout.LayoutParams lp = (CoordinatorLayout.LayoutParams) v.getLayoutParams();
+                lp.bottomMargin = (int) ((16 + 80) * density) + navBarHeight;
+                v.setLayoutParams(lp);
+                return insets;
+            });
+        }
+
         return view;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (adapter != null) {
+            adapter.notifyDataSetChanged();
+        }
+        LayoutShapeHelper.applyToView(getView());
     }
 
     private void updateHeaderUI() {

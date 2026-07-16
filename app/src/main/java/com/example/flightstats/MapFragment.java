@@ -32,8 +32,13 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import androidx.appcompat.app.AlertDialog;
 import android.widget.LinearLayout;
+import android.widget.FrameLayout;
 import android.widget.ProgressBar;
+import android.widget.ImageButton;
 import android.view.Gravity;
+import android.animation.ValueAnimator;
+import android.view.animation.DecelerateInterpolator;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -68,27 +73,22 @@ public class MapFragment extends Fragment {
 
     private MapView mapView;
 
-
-    private MaterialCardView cardSettings;
-    private View settingsScrim;
     private MaterialCardView btnProfile;
-    private TextInputEditText inputHometown;
-    private Slider sliderZoom;
-    private com.google.android.material.materialswitch.MaterialSwitch switchAiOverviews;
-    private MaterialButtonToggleGroup toggleThemeGroup;
-    private MaterialButton btnThemeLight, btnThemeDark, btnThemeSystem;
-    private MaterialButton btnClose;
-
-    // Settings nav toggle group and tab contents
-    private MaterialButtonToggleGroup settingsNavGroup;
-    private androidx.core.widget.NestedScrollView tabContentUser, tabContentMap, tabContentTheme, tabContentAi;
-    private MaterialButtonToggleGroup toggleUnitGroup;
-    private MaterialButtonToggleGroup toggleRouteGroup;
-    private MaterialButtonToggleGroup toggleToneGroup;
-    private TextInputEditText inputUserName;
     private TextView textProfileInitial;
 
     private boolean isInitialLoad = true;
+
+    // Config state tracking
+    private String currentHometown = "";
+    private String currentUserName = "";
+    private String currentMapStyle = "";
+    private String currentPreferredUnit = "";
+
+    // Dialog stats counts
+    private int totalFlightsCount = 0;
+    private int totalCountriesCount = 0;
+    private int totalAirportsCount = 0;
+    private int totalRoutesCount = 0;
 
     @Nullable
     @Override
@@ -115,34 +115,8 @@ public class MapFragment extends Fragment {
 
 
         // Find Settings Views
-        btnProfile        = view.findViewById(R.id.btn_profile);
-        cardSettings      = view.findViewById(R.id.card_settings);
-        settingsScrim     = view.findViewById(R.id.settings_scrim);
-        inputHometown     = view.findViewById(R.id.input_hometown);
-        sliderZoom        = view.findViewById(R.id.slider_zoom);
-        toggleThemeGroup  = view.findViewById(R.id.toggle_theme_group);
-        btnThemeLight     = view.findViewById(R.id.btn_theme_light);
-        btnThemeDark      = view.findViewById(R.id.btn_theme_dark);
-        btnThemeSystem    = view.findViewById(R.id.btn_theme_system);
-        btnClose          = view.findViewById(R.id.btn_settings_close);
-        switchAiOverviews = view.findViewById(R.id.switch_ai_overviews);
-        
-        MaterialButton btnRegenerateAllStories = view.findViewById(R.id.btn_regenerate_all_stories);
-        if (btnRegenerateAllStories != null) {
-            btnRegenerateAllStories.setOnClickListener(v -> regenerateAllStoriesWithAI());
-        }
-
-        settingsNavGroup  = view.findViewById(R.id.settings_tab_layout);
-        tabContentUser    = view.findViewById(R.id.settings_tab_content_user);
-        tabContentMap     = view.findViewById(R.id.settings_tab_content_map);
-        tabContentTheme   = view.findViewById(R.id.settings_tab_content_theme);
-        tabContentAi      = view.findViewById(R.id.settings_tab_content_ai);
-        inputUserName     = view.findViewById(R.id.input_user_name);
+        btnProfile = view.findViewById(R.id.btn_profile);
         textProfileInitial = view.findViewById(R.id.text_profile_initial);
-
-        toggleUnitGroup   = view.findViewById(R.id.toggle_unit_group);
-        toggleRouteGroup  = view.findViewById(R.id.toggle_route_group);
-        toggleToneGroup   = view.findViewById(R.id.toggle_tone_group);
 
         View profileContainer = view.findViewById(R.id.profile_container);
         if (profileContainer != null) {
@@ -161,174 +135,142 @@ public class MapFragment extends Fragment {
             });
         }
 
-        // Initialize SharedPreferences and load overlay fields
+        // Initialize SharedPreferences and load configuration state fields
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
-        String hometownPref = prefs.getString("hometown", "AMS").trim().toUpperCase();
-        float zoomPref = Math.max(4.0f, prefs.getFloat("default_zoom", 4.5f));
-        int themePref = prefs.getInt("theme_mode", 2); // 0 = Light, 1 = Dark, 2 = System
-        boolean aiOverviewsPref = prefs.getBoolean("enable_ai_overviews", true);
-        String userNamePref = prefs.getString("user_name", "User").trim();
-        if (userNamePref.isEmpty()) userNamePref = "User";
+        currentHometown = prefs.getString("hometown", "AMS").trim().toUpperCase();
+        currentUserName = prefs.getString("user_name", "User").trim();
+        currentMapStyle = prefs.getString("map_style", "light");
+        currentPreferredUnit = prefs.getString("preferred_unit", "km");
 
-        String unitPref = prefs.getString("preferred_unit", "km");
-        boolean routeCurvedPref = prefs.getBoolean("map_route_curved", true);
-        String tonePref = prefs.getString("ai_summary_tone", "analytical");
-
-        // Load existing preference values to UI elements without triggering listeners prematurely
-        inputHometown.setText(hometownPref);
-        sliderZoom.setValue(zoomPref);
-        switchAiOverviews.setChecked(aiOverviewsPref);
-        inputUserName.setText(userNamePref);
-        textProfileInitial.setText(userNamePref.substring(0, 1).toUpperCase());
-
-        if (themePref == 0) {
-            toggleThemeGroup.check(R.id.btn_theme_light);
-        } else if (themePref == 1) {
-            toggleThemeGroup.check(R.id.btn_theme_dark);
-        } else {
-            toggleThemeGroup.check(R.id.btn_theme_system);
+        if (textProfileInitial != null && !currentUserName.isEmpty()) {
+            textProfileInitial.setText(currentUserName.substring(0, 1).toUpperCase());
         }
 
-        if (toggleUnitGroup != null) {
-            if ("mi".equals(unitPref)) {
-                toggleUnitGroup.check(R.id.btn_unit_imperial);
-            } else {
-                toggleUnitGroup.check(R.id.btn_unit_metric);
-            }
-        }
-
-        if (toggleRouteGroup != null) {
-            if (routeCurvedPref) {
-                toggleRouteGroup.check(R.id.btn_route_curved);
-            } else {
-                toggleRouteGroup.check(R.id.btn_route_straight);
-            }
-        }
-
-        if (toggleToneGroup != null) {
-            if ("narrative".equals(tonePref)) {
-                toggleToneGroup.check(R.id.btn_tone_narrative);
-            } else {
-                toggleToneGroup.check(R.id.btn_tone_analytical);
-            }
-        }
-
-        // Wire up the icon nav toggle group
-        if (settingsNavGroup != null) {
-            settingsNavGroup.check(R.id.settings_tab_btn_user);
-            settingsNavGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
-                if (!isChecked) return;
-                if (tabContentUser != null) tabContentUser.setVisibility(checkedId == R.id.settings_tab_btn_user ? View.VISIBLE : View.GONE);
-                if (tabContentMap != null) tabContentMap.setVisibility(checkedId == R.id.settings_tab_btn_map ? View.VISIBLE : View.GONE);
-                if (tabContentTheme != null) tabContentTheme.setVisibility(checkedId == R.id.settings_tab_btn_theme ? View.VISIBLE : View.GONE);
-                if (tabContentAi != null) tabContentAi.setVisibility(checkedId == R.id.settings_tab_btn_ai ? View.VISIBLE : View.GONE);
-            });
-        }
-
-        // Tap profile button to open floating Settings Card, reset to Profile tab
+        // Tap profile button to open Google App-style profile switcher dialog
         btnProfile.setOnClickListener(v -> {
-            cardSettings.setVisibility(View.VISIBLE);
-            settingsScrim.setVisibility(View.VISIBLE);
-            if (settingsNavGroup != null) settingsNavGroup.check(R.id.settings_tab_btn_user);
-            if (tabContentUser != null) tabContentUser.setVisibility(View.VISIBLE);
-            if (tabContentMap != null) tabContentMap.setVisibility(View.GONE);
-            if (tabContentTheme != null) tabContentTheme.setVisibility(View.GONE);
-            if (tabContentAi != null) tabContentAi.setVisibility(View.GONE);
-        });
-
-        // Click listener to close floating card (simply dismiss since everything is autosaved)
-        View.OnClickListener dismissListener = v -> {
-            cardSettings.setVisibility(View.GONE);
-            settingsScrim.setVisibility(View.GONE);
-        };
-        if (btnClose != null) {
-            btnClose.setOnClickListener(dismissListener);
-        }
-        settingsScrim.setOnClickListener(dismissListener);
-
-        // Real-time autosave listeners for settings
-        inputUserName.addTextChangedListener(new android.text.TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
-            @Override public void afterTextChanged(android.text.Editable s) {
-                String name = s.toString().trim();
-                if (name.isEmpty()) name = "User";
-                prefs.edit().putString("user_name", name).apply();
-                textProfileInitial.setText(name.substring(0, 1).toUpperCase());
-            }
-        });
-
-        inputHometown.addTextChangedListener(new android.text.TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
-            @Override public void afterTextChanged(android.text.Editable s) {
-                String iata = s.toString().trim().toUpperCase();
-                if (iata.length() == 3) {
-                    inputHometown.setError(null);
-                    prefs.edit().putString("hometown", iata).apply();
-                    isInitialLoad = true;
-                    loadMapAndStats();
-                } else {
-                    inputHometown.setError("Please enter a valid 3-letter IATA code");
-                }
-            }
-        });
-
-        sliderZoom.addOnChangeListener((slider, value, fromUser) -> {
-            prefs.edit().putFloat("default_zoom", value).apply();
-            if (mapView != null) {
-                mapView.getController().setZoom((double) value);
-            }
-        });
-
-        toggleThemeGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
-            if (!isChecked) return;
-            int themeMode = 2; // System Auto
-            if (checkedId == R.id.btn_theme_light) {
-                themeMode = 0;
-            } else if (checkedId == R.id.btn_theme_dark) {
-                themeMode = 1;
-            }
-            prefs.edit().putInt("theme_mode", themeMode).apply();
+            View dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_profile_card, null);
             
-            if (themeMode == 0) {
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
-            } else if (themeMode == 1) {
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
-            } else {
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
+            TextView tvInitial = dialogView.findViewById(R.id.dialog_profile_initial);
+            TextView tvName = dialogView.findViewById(R.id.dialog_profile_name);
+            TextView tvHometown = dialogView.findViewById(R.id.dialog_profile_hometown);
+            TextView tvStatFlights = dialogView.findViewById(R.id.dialog_stat_flights);
+            TextView tvStatCountries = dialogView.findViewById(R.id.dialog_stat_countries);
+            TextView tvStatAirports = dialogView.findViewById(R.id.dialog_stat_airports);
+            ImageButton btnCloseDialog = dialogView.findViewById(R.id.btn_dialog_close);
+            MaterialButton btnDialogSettings = dialogView.findViewById(R.id.btn_dialog_settings);
+
+            SharedPreferences dPrefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
+            String dName = dPrefs.getString("user_name", "User").trim();
+            String dHometown = dPrefs.getString("hometown", "AMS").trim().toUpperCase();
+
+            if (tvInitial != null && !dName.isEmpty()) tvInitial.setText(dName.substring(0, 1).toUpperCase());
+            if (tvName != null) tvName.setText(dName);
+            if (tvHometown != null) tvHometown.setText("Home Airport: " + dHometown);
+            if (tvStatFlights != null) tvStatFlights.setText(String.valueOf(totalFlightsCount));
+            if (tvStatCountries != null) tvStatCountries.setText(String.valueOf(totalCountriesCount));
+            if (tvStatAirports != null) tvStatAirports.setText(String.valueOf(totalAirportsCount));
+
+            AlertDialog profileDialog = new MaterialAlertDialogBuilder(requireContext())
+                .setView(dialogView)
+                .create();
+
+            if (btnCloseDialog != null) {
+                btnCloseDialog.setOnClickListener(dv -> profileDialog.dismiss());
             }
+
+            if (btnDialogSettings != null) {
+                btnDialogSettings.setOnClickListener(dv -> {
+                    profileDialog.dismiss();
+                    android.content.Intent intent = new android.content.Intent(requireContext(), SettingsActivity.class);
+                    startActivity(intent);
+                });
+            }
+
+            profileDialog.show();
         });
 
-        if (toggleUnitGroup != null) {
-            toggleUnitGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
-                if (!isChecked) return;
-                String unit = (checkedId == R.id.btn_unit_imperial) ? "mi" : "km";
-                prefs.edit().putString("preferred_unit", unit).apply();
-                loadMapAndStats();
+        // Morphing FAB & Search Overlay Controls
+        FloatingActionButton fabMapAction = view.findViewById(R.id.fab_map_action);
+        MaterialCardView cardSearchOverlay = view.findViewById(R.id.card_search_overlay);
+        ImageButton btnCloseOverlay = view.findViewById(R.id.btn_close_overlay);
+        MaterialButton btnOverlayScan = view.findViewById(R.id.btn_overlay_scan);
+        MaterialButton btnOverlayAdd = view.findViewById(R.id.btn_overlay_add);
+
+        if (fabMapAction != null) {
+            ViewCompat.setOnApplyWindowInsetsListener(fabMapAction, (v, insets) -> {
+                int navBarHeight = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom;
+                float density = getResources().getDisplayMetrics().density;
+                FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) v.getLayoutParams();
+                lp.bottomMargin = (int) (16 * density) + navBarHeight;
+                v.setLayoutParams(lp);
+                return insets;
             });
         }
 
-        if (toggleRouteGroup != null) {
-            toggleRouteGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
-                if (!isChecked) return;
-                boolean curved = (checkedId == R.id.btn_route_curved);
-                prefs.edit().putBoolean("map_route_curved", curved).apply();
-                loadMapAndStats();
+        if (cardSearchOverlay != null) {
+            ViewCompat.setOnApplyWindowInsetsListener(cardSearchOverlay, (v, insets) -> {
+                int navBarHeight = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom;
+                float density = getResources().getDisplayMetrics().density;
+                FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) v.getLayoutParams();
+                lp.bottomMargin = (int) (16 * density) + navBarHeight;
+                v.setLayoutParams(lp);
+                return insets;
             });
+            LayoutShapeHelper.applyToView(cardSearchOverlay);
         }
 
-        if (toggleToneGroup != null) {
-            toggleToneGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
-                if (!isChecked) return;
-                String tone = (checkedId == R.id.btn_tone_narrative) ? "narrative" : "analytical";
-                prefs.edit().putString("ai_summary_tone", tone).apply();
+        if (fabMapAction != null && cardSearchOverlay != null) {
+            fabMapAction.setOnClickListener(v -> {
+                com.google.android.material.transition.MaterialContainerTransform transform =
+                        new com.google.android.material.transition.MaterialContainerTransform();
+                transform.setStartView(fabMapAction);
+                transform.setEndView(cardSearchOverlay);
+                transform.setDuration(400L);
+                transform.addTarget(cardSearchOverlay);
+                transform.setScrimColor(android.graphics.Color.TRANSPARENT);
+                
+                androidx.transition.TransitionManager.beginDelayedTransition((ViewGroup) view, transform);
+                
+                fabMapAction.setVisibility(View.GONE);
+                cardSearchOverlay.setVisibility(View.VISIBLE);
             });
-        }
 
-        switchAiOverviews.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            prefs.edit().putBoolean("enable_ai_overviews", isChecked).apply();
-        });
+            if (btnCloseOverlay != null) {
+                btnCloseOverlay.setOnClickListener(v -> {
+                    com.google.android.material.transition.MaterialContainerTransform transform =
+                            new com.google.android.material.transition.MaterialContainerTransform();
+                    transform.setStartView(cardSearchOverlay);
+                    transform.setEndView(fabMapAction);
+                    transform.setDuration(350L);
+                    transform.addTarget(fabMapAction);
+                    transform.setScrimColor(android.graphics.Color.TRANSPARENT);
+                    
+                    androidx.transition.TransitionManager.beginDelayedTransition((ViewGroup) view, transform);
+                    
+                    cardSearchOverlay.setVisibility(View.GONE);
+                    fabMapAction.setVisibility(View.VISIBLE);
+                });
+            }
+
+            if (btnOverlayScan != null) {
+                btnOverlayScan.setOnClickListener(v -> {
+                    cardSearchOverlay.setVisibility(View.GONE);
+                    fabMapAction.setVisibility(View.VISIBLE);
+                    android.content.Intent intent = new android.content.Intent(requireContext(), BarcodeScannerActivity.class);
+                    startActivity(intent);
+                });
+            }
+
+            if (btnOverlayAdd != null) {
+                btnOverlayAdd.setOnClickListener(v -> {
+                    cardSearchOverlay.setVisibility(View.GONE);
+                    fabMapAction.setVisibility(View.VISIBLE);
+                    AddFlightBottomSheet sheet = new AddFlightBottomSheet();
+                    sheet.setOnFlightAddedListener(this::refresh);
+                    sheet.show(getChildFragmentManager(), "add_flight");
+                });
+            }
+        }
 
         // Sequential: import airports → import flights → render
         AirportImporter.importIfNeeded(requireContext(), ignored ->
@@ -336,170 +278,6 @@ public class MapFragment extends Fragment {
                         loadMapAndStats()));
 
         return view;
-    }
-
-    /** Can be called externally (e.g. after adding a flight) to refresh. */
-
-    private void regenerateAllStoriesWithAI() {
-        LinearLayout layout = new LinearLayout(requireContext());
-        layout.setOrientation(LinearLayout.HORIZONTAL);
-        layout.setGravity(Gravity.CENTER_VERTICAL);
-        int padding = (int) (24 * getResources().getDisplayMetrics().density);
-        layout.setPadding(padding, padding, padding, padding);
-
-        ProgressBar progressBar = new ProgressBar(requireContext());
-        progressBar.setIndeterminate(true);
-        layout.addView(progressBar);
-
-        final TextView textView = new TextView(requireContext());
-        textView.setText("Initializing on-device AI Core...");
-        textView.setTextSize(14f);
-        textView.setTextAppearance(requireContext(), com.google.android.material.R.style.TextAppearance_Material3_BodyMedium);
-        textView.setPadding((int) (16 * getResources().getDisplayMetrics().density), 0, 0, 0);
-        layout.addView(textView);
-
-        final AlertDialog dialog = new MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Gemini Nano On-Device AI")
-            .setView(layout)
-            .setCancelable(false)
-            .create();
-        dialog.show();
-
-        Executors.newSingleThreadExecutor().execute(() -> {
-            try {
-                AppDatabase db = AppDatabase.getDatabase(requireContext());
-                List<Flight> dbFlights = db.flightDao().getAllFlights();
-                String todayStr = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
-                List<Flight> allFlights = new ArrayList<>();
-                for (Flight f : dbFlights) {
-                    if (f.date != null && f.date.compareTo(todayStr) < 0) {
-                        allFlights.add(f);
-                    }
-                }
-                
-                Set<String> yearsSet = new HashSet<>();
-                for (Flight f : allFlights) {
-                    if (f.date != null && f.date.length() >= 4) {
-                        yearsSet.add(f.date.substring(0, 4));
-                    }
-                }
-                String currentCalendarYear = String.valueOf(java.util.Calendar.getInstance().get(java.util.Calendar.YEAR));
-                yearsSet.add(currentCalendarYear);
-                
-                List<String> yearsToGenerate = new ArrayList<>(yearsSet);
-                yearsToGenerate.add("All Time");
-
-                GenerativeModelFutures futures = GenerativeModelFutures.from(Generation.INSTANCE.getClient());
-                SharedPreferences settingsPrefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
-                
-                for (String year : yearsToGenerate) {
-                    new Handler(Looper.getMainLooper()).post(() -> {
-                        textView.setText("Generating story for " + year + "...");
-                    });
-                    
-                    List<Flight> filteredFlights;
-                    if (year.equals("All Time")) {
-                        filteredFlights = allFlights;
-                    } else {
-                        filteredFlights = new ArrayList<>();
-                        for (Flight f : allFlights) {
-                            if (f.date != null && f.date.startsWith(year)) {
-                                filteredFlights.add(f);
-                            }
-                        }
-                    }
-                    
-                    if (filteredFlights.isEmpty()) continue;
-                    
-                    // Sort by date so flight directions are in chronological order
-                    filteredFlights.sort((a, b) -> {
-                        if (a.date == null) return -1;
-                        if (b.date == null) return 1;
-                        return a.date.compareTo(b.date);
-                    });
-
-                    int flights = filteredFlights.size();
-                    double km = 0;
-                    Set<String> countries = new HashSet<>();
-                    List<String> trips = new ArrayList<>();
-                    for (Flight f : filteredFlights) {
-                        km += f.distance;
-                        String originName = f.origin;
-                        String destName = f.destination;
-                        Airport o = db.airportDao().getByIata(f.origin);
-                        if (o != null) {
-                            countries.add(o.country);
-                            if (o.city != null && !o.city.isEmpty()) originName = o.city;
-                        }
-                        Airport d = db.airportDao().getByIata(f.destination);
-                        if (d != null) {
-                            countries.add(d.country);
-                            if (d.city != null && !d.city.isEmpty()) destName = d.city;
-                        }
-                        trips.add(originName + " → " + destName);
-                    }
-
-                    String countryList = android.text.TextUtils.join(", ", countries);
-                    String tripList = android.text.TextUtils.join("; ", trips);
-
-                    String tone = settingsPrefs.getString("ai_summary_tone", "analytical");
-                    String toneInstruction;
-                    if ("narrative".equals(tone)) {
-                        toneInstruction = "Write in a warm, narrative, and conversational travel log style. Flowing prose only, no bullet lists. Max 2 short paragraphs.";
-                    } else {
-                        toneInstruction = "Write in an analytical, concise, and structured style. Use a bulleted list for key highlights and statistics.";
-                    }
-
-                    String unitPrefVal = settingsPrefs.getString("preferred_unit", "km");
-                    double distanceVal = km;
-                    String unitName = "km";
-                    if ("mi".equals(unitPrefVal)) {
-                        distanceVal = km * 0.6213711922;
-                        unitName = "miles";
-                    }
-
-                    String prompt = "Write a short travel summary for " + year + ", addressing the reader as 'you'. " +
-                        toneInstruction + " " +
-                        "Stick to the facts below — do not invent destinations or activities. " +
-                        "Stats: " + flights + " flights, " + (int)distanceVal + " " + unitName + " total. " +
-                        "Countries: " + countryList + ". " +
-                        "Flights in order: " + tripList + ". " +
-                        "Group legs into trips where logical. Bold place names and key numbers. No emojis.";
-
-                    GenerateContentRequest.Builder requestBuilder = new GenerateContentRequest.Builder(new TextPart(prompt));
-                    requestBuilder.setTemperature(0.7f);
-                    requestBuilder.setMaxOutputTokens(256);
-                    GenerateContentRequest request = requestBuilder.build();
-                        
-                    try {
-                        ListenableFuture<GenerateContentResponse> future = futures.generateContent(request);
-                        GenerateContentResponse result = future.get(); // Blocking wait for sequential generation
-                        settingsPrefs.edit().putString("saved_story_" + year, result.getCandidates().get(0).getText()).apply();
-                    } catch (Exception e) {
-                        // Fallback on error: remove saved story to rely on organic engine
-                        settingsPrefs.edit().remove("saved_story_" + year).apply();
-                        int currentVersion = settingsPrefs.getInt("story_regen_version_" + year, 0);
-                        settingsPrefs.edit().putInt("story_regen_version_" + year, currentVersion + 1).apply();
-                    }
-                }
-                
-                int globalVersion = settingsPrefs.getInt("story_regen_version", 0);
-                settingsPrefs.edit().putInt("story_regen_version", globalVersion + 1).apply();
-
-                new Handler(Looper.getMainLooper()).post(() -> {
-                    dialog.dismiss();
-                    cardSettings.setVisibility(View.GONE);
-                    settingsScrim.setVisibility(View.GONE);
-                    Snackbar.make(mapView, "Stories regenerated successfully", Snackbar.LENGTH_LONG).show();
-                });
-            } catch (Exception e) {
-                final String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
-                new Handler(Looper.getMainLooper()).post(() -> {
-                    dialog.dismiss();
-                    Snackbar.make(mapView, "AI Generation encountered an error: " + errorMsg, Snackbar.LENGTH_LONG).show();
-                });
-            }
-        });
     }
     public void refresh() {
         if (mapView != null) mapView.getOverlays().clear();
@@ -514,6 +292,27 @@ public class MapFragment extends Fragment {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
         String hometown = prefs.getString("hometown", "AMS").trim().toUpperCase();
         float defaultZoom = Math.max(4.0f, prefs.getFloat("default_zoom", 4.5f));
+        String mapStyle = prefs.getString("map_style", "light");
+
+        // Apply Map style dynamically
+        if ("satellite".equals(mapStyle)) {
+            mapView.setTileSource(org.osmdroid.tileprovider.tilesource.TileSourceFactory.USGS_SAT);
+            mapView.getOverlayManager().getTilesOverlay().setColorFilter(null);
+        } else {
+            mapView.setTileSource(org.osmdroid.tileprovider.tilesource.TileSourceFactory.MAPNIK);
+            if ("dark".equals(mapStyle)) {
+                // High contrast inverted matrix for dark mode style
+                float[] colorMatrix = {
+                    -0.85f, 0, 0, 0, 220,
+                    0, -0.85f, 0, 0, 220,
+                    0, 0, -0.85f, 0, 220,
+                    0, 0, 0, 1.0f, 0
+                };
+                mapView.getOverlayManager().getTilesOverlay().setColorFilter(new android.graphics.ColorMatrixColorFilter(colorMatrix));
+            } else {
+                mapView.getOverlayManager().getTilesOverlay().setColorFilter(null);
+            }
+        }
 
         Executors.newSingleThreadExecutor().execute(() -> {
             android.content.Context bgContext = getContext();
@@ -585,6 +384,13 @@ public class MapFragment extends Fragment {
 
             new Handler(Looper.getMainLooper()).post(() -> {
                 if (getView() == null || !isAdded()) return;
+                
+                // Save counts for profile card dialog overview
+                totalFlightsCount = finalFlights;
+                totalCountriesCount = finalCountries;
+                totalAirportsCount = finalAirports;
+                totalRoutesCount = finalRoutes;
+
                 mapView.getOverlays().clear();
 
                 // Resolve theme colorPrimary on the main thread
@@ -594,6 +400,10 @@ public class MapFragment extends Fragment {
                 int primaryColor = tv.data;
                 // Apply 80% alpha for a nice semi-transparent look
                 int routeColor = (0xCC000000 & 0xFF000000) | (primaryColor & 0x00FFFFFF);
+
+                // Collect lines and points for animation
+                final List<Polyline> routePolylines = new ArrayList<>();
+                final List<List<GeoPoint>> allRoutePoints = new ArrayList<>();
 
                 // Draw route lines using theme colorPrimary (either geodesic or straight)
                 boolean isCurved = prefs.getBoolean("map_route_curved", true);
@@ -608,19 +418,57 @@ public class MapFragment extends Fragment {
                         points.add(r.to);
                     }
                     Polyline line = new Polyline(mapView);
-                    line.setPoints(points);
                     line.setColor(routeColor);
                     line.setWidth(2.5f);
                     line.setTitle(r.fromCode + " → " + r.toCode);
+                    
+                    // Initially set empty to draw progressively
+                    line.setPoints(new ArrayList<>());
                     mapView.getOverlays().add(line);
+                    
+                    routePolylines.add(line);
+                    allRoutePoints.add(points);
                 }
 
                 // Draw M3 circle markers on top (deduplicated by airport)
+                final List<Marker> airportMarkers = new ArrayList<>();
                 Set<String> drawnAirports = new HashSet<>();
                 for (RouteData r : finalRouteDataMap.values()) {
-                    drawMarker(r.from, r.fromCode, drawnAirports);
-                    drawMarker(r.to,   r.toCode,   drawnAirports);
+                    Marker m1 = drawMarker(r.from, r.fromCode, drawnAirports);
+                    if (m1 != null) airportMarkers.add(m1);
+                    
+                    Marker m2 = drawMarker(r.to,   r.toCode,   drawnAirports);
+                    if (m2 != null) airportMarkers.add(m2);
                 }
+
+                // Create ValueAnimator for drawing progress and marker fade-in
+                ValueAnimator pathAnimator = ValueAnimator.ofFloat(0f, 1f);
+                pathAnimator.setDuration(1800L); // 1.8 seconds duration
+                pathAnimator.setInterpolator(new DecelerateInterpolator());
+                pathAnimator.addUpdateListener(animation -> {
+                    if (!isAdded() || mapView == null) return;
+                    float fraction = (float) animation.getAnimatedValue();
+                    
+                    // Update line points
+                    for (int i = 0; i < routePolylines.size(); i++) {
+                        Polyline line = routePolylines.get(i);
+                        List<GeoPoint> fullPoints = allRoutePoints.get(i);
+                        int count = Math.max(2, (int) (fullPoints.size() * fraction));
+                        if (count <= fullPoints.size()) {
+                            line.setPoints(new ArrayList<>(fullPoints.subList(0, count)));
+                        } else {
+                            line.setPoints(new ArrayList<>(fullPoints));
+                        }
+                    }
+                    
+                    // Fade in markers
+                    for (Marker marker : airportMarkers) {
+                        marker.setAlpha(fraction);
+                    }
+                    
+                    mapView.invalidate();
+                });
+                pathAnimator.start();
 
                 // If it's the initial load, center and zoom the map
                 if (isInitialLoad) {
@@ -649,8 +497,8 @@ public class MapFragment extends Fragment {
         });
     }
 
-    private void drawMarker(GeoPoint pt, String iata, Set<String> drawn) {
-        if (drawn.contains(iata)) return;
+    private Marker drawMarker(GeoPoint pt, String iata, Set<String> drawn) {
+        if (drawn.contains(iata)) return null;
         drawn.add(iata);
         Marker m = new Marker(mapView);
         m.setPosition(pt);
@@ -658,7 +506,9 @@ public class MapFragment extends Fragment {
         m.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER);
         Drawable icon = AirportMarkerIcon.create(requireContext(), iata);
         m.setIcon(icon);
+        m.setAlpha(0f);
         mapView.getOverlays().add(m);
+        return m;
     }
 
     private GeoPoint resolvePosition(AppDatabase db, Map<String, GeoPoint> cache, String iata) {
@@ -670,7 +520,41 @@ public class MapFragment extends Fragment {
         return pt;
     }
 
-    @Override public void onResume() { super.onResume(); if (mapView != null) mapView.onResume(); }
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (mapView != null) mapView.onResume();
+
+        // Check if preferences changed in SettingsActivity
+        if (isAdded()) {
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
+            String hometown = prefs.getString("hometown", "AMS").trim().toUpperCase();
+            String userName = prefs.getString("user_name", "User").trim();
+            String mapStyle = prefs.getString("map_style", "light");
+            String unit = prefs.getString("preferred_unit", "km");
+
+            boolean needsReload = !hometown.equals(currentHometown)
+                    || !mapStyle.equals(currentMapStyle)
+                    || !unit.equals(currentPreferredUnit);
+
+            if (needsReload) {
+                currentHometown = hometown;
+                currentMapStyle = mapStyle;
+                currentPreferredUnit = unit;
+                refresh();
+            }
+
+            // Apply card shape theme preference
+            LayoutShapeHelper.applyToView(getView());
+
+            if (!userName.equals(currentUserName)) {
+                currentUserName = userName;
+                if (textProfileInitial != null && !userName.isEmpty()) {
+                    textProfileInitial.setText(userName.substring(0, 1).toUpperCase());
+                }
+            }
+        }
+    }
     @Override public void onPause()  { super.onPause();  if (mapView != null) mapView.onPause(); }
 
     @Override

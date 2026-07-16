@@ -10,8 +10,8 @@ public class FlightStatsApp extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        // Apply Material You dynamic colors (wallpaper theming) across the entire app
-        DynamicColors.applyToActivitiesIfAvailable(this);
+        // Commented out to enforce the custom Willow Green / Tea Green color palette
+        // DynamicColors.applyToActivitiesIfAvailable(this);
 
         // Apply night mode preference on app start
         android.content.SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);

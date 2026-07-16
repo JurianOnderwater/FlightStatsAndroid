@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView
+<com.google.android.material.carousel.MaskableFrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    style="@style/Widget.Material3.CardView.Outlined"
+    android:layout_width="220dp"
+    android:layout_height="match_parent"
+    app:shapeAppearance="?attr/shapeAppearanceCornerExtraLarge">
+<com.google.android.material.card.MaterialCardView
+            android:layout_margin="4dp"
+            style="@style/Widget.Material3.CardView.Outlined"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     app:cardBackgroundColor="?attr/colorSurface"
@@ -78,3 +83,4 @@
         </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>
+</com.google.android.material.carousel.MaskableFrameLayout>

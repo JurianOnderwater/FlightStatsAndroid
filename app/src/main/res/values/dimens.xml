@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material 3 Elevation Levels -->
+    <dimen name="m3_elevation_level0">0dp</dimen>
+    <dimen name="m3_elevation_level1">1dp</dimen>
+    <dimen name="m3_elevation_level2">3dp</dimen>
+    <dimen name="m3_elevation_level3">6dp</dimen>
+    <dimen name="m3_elevation_level4">8dp</dimen>
+    <dimen name="m3_elevation_level5">12dp</dimen>
+</resources>

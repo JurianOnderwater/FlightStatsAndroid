@@ -14,6 +14,7 @@
     <application
         android:name=".FlightStatsApp"
         android:allowBackup="true"
+        android:enableOnBackInvokedCallback="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
@@ -37,6 +38,12 @@
             android:exported="false"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.FlightStats"/>
+        <activity
+            android:name=".SettingsActivity"
+            android:label="Travel Settings"
+            android:parentActivityName=".MainActivity"
+            android:theme="@style/Theme.FlightStats"
+            android:exported="false" />
     </application>
 
 </manifest>
