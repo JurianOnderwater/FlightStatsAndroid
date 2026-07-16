@@ -2,7 +2,7 @@
 
 All notable changes to the FlightStats Android application will be documented in this file.
 
-## [1.1.0] - 2026-07-16
+## [1.3.0] - 2026-07-16
 
 ### Added
 - **Dynamic Contextual Theming**: Carousel statistics cards automatically compile travel patterns (Spring/Summer/Autumn/Winter flight counts and top-visited countries) and adapt cards with custom themed colorways (e.g. Delft Blue & Orange for Netherlands, Crimson & Indigo for US, Sakura Pink & Zen Red for Japan, Lavender & Riviera Blue for France) for both Light and Dark modes.
