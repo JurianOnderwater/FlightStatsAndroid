@@ -1,0 +1,27 @@
+<resources>
+    <string name="app_name">FlightStats</string>
+    <string name="title_map">Kaart</string>
+    <string name="title_flights">Vluchten</string>
+    <string name="title_stats">Statistieken</string>
+    <string name="title_settings">Instellingen</string>
+    <string name="action_save">Opslaan</string>
+    <string name="action_delete">Verwijderen</string>
+    <string name="action_cancel">Annuleren</string>
+    <string name="action_scan">Instapkaart Scannen</string>
+    <string name="action_add">Vlucht Toevoegen</string>
+    <string name="label_airline">Luchtvaartmaatschappij</string>
+    <string name="label_flight_no">Vluchtnummer</string>
+    <string name="label_seat">Stoel</string>
+    <string name="label_class">Klasse</string>
+    <string name="label_dep_time">Vertrektijd</string>
+    <string name="label_arr_time">Aankomsttijd</string>
+    <string name="label_notes">Notities</string>
+    <string name="label_date">Datum</string>
+    <string name="title_upcoming">Komende Reizen</string>
+    <string name="title_past">Eerdere Vluchten</string>
+    <string name="empty_upcoming">Geen komende vluchten\n\nTik op \'Eerdere Vluchten\' voor geschiedenis</string>
+    <string name="empty_past">Geen eerdere vluchten gevonden</string>
+    <string name="title_flight_pairs_history">Vluchtgeschiedenis</string>
+    <string name="label_flights_total">%1$d vluchten in totaal</string>
+    <string name="empty_airport_flights">Geen vluchtdatums vastgelegd voor deze luchthaven.</string>
+</resources>

@@ -1,0 +1,27 @@
+<resources>
+    <string name="app_name">FlightStats</string>
+    <string name="title_map">Karta</string>
+    <string name="title_flights">Flyg</string>
+    <string name="title_stats">Statistik</string>
+    <string name="title_settings">Inställningar</string>
+    <string name="action_save">Spara</string>
+    <string name="action_delete">Ta bort</string>
+    <string name="action_cancel">Avbryt</string>
+    <string name="action_scan">Skanna boardingkort</string>
+    <string name="action_add">Lägg till flyg</string>
+    <string name="label_airline">Flygbolag</string>
+    <string name="label_flight_no">Flygnummer</string>
+    <string name="label_seat">Säte</string>
+    <string name="label_class">Klass</string>
+    <string name="label_dep_time">Avgångstid</string>
+    <string name="label_arr_time">Ankomsttid</string>
+    <string name="label_notes">Anteckningar</string>
+    <string name="label_date">Datum</string>
+    <string name="title_upcoming">Kommande resor</string>
+    <string name="title_past">Tidigare flyg</string>
+    <string name="empty_upcoming">Inga kommande resor\n\nTryck på \'Tidigare flyg\' för att se historik</string>
+    <string name="empty_past">Inga tidigare flyg hittades</string>
+    <string name="title_flight_pairs_history">Flyghistorik</string>
+    <string name="label_flights_total">%1$d flygningar totalt</string>
+    <string name="empty_airport_flights">Inga flygdatum registrerade för denna flygplats.</string>
+</resources>
