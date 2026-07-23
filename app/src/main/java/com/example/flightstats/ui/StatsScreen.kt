@@ -711,98 +711,131 @@ fun AiStorySection(
             .padding(horizontal = 16.dp)
             .animateContentSize()
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "${uiState.selectedYear} Gemini Travel Log",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+        Column(modifier = Modifier.fillMaxWidth()) {
+            if (uiState.isStoryGenerating) {
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth(),
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.weight(1f)
+                    trackColor = MaterialTheme.colorScheme.primaryContainer
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            if (uiState.isStoryGenerating) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    CircularProgressIndicator()
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Generating summary with Gemini Nano...", style = MaterialTheme.typography.bodyMedium)
-                }
-            } else {
-                val story = uiState.aiStory
-                if (story != null) {
-                    MarkdownText(
-                        markdown = story,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = if (isExpanded) Int.MAX_VALUE else 3,
-                        modifier = Modifier.fillMaxWidth()
+                    Text(
+                        text = "${uiState.selectedYear} Gemini Travel Log",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.weight(1f)
                     )
+                }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                if (uiState.isStoryGenerating) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 24.dp)
                     ) {
-                        FilledTonalButton(
-                            onClick = { isExpanded = !isExpanded }
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.padding(8.dp)
                         ) {
-                            Icon(
-                                imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                contentDescription = null
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(if (isExpanded) "Collapse" else "Expand")
-                        }
-
-                        OutlinedButton(
-                            onClick = onGenerateClick
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Regenerate")
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    strokeWidth = 2.5.dp
+                                )
+                                Text(
+                                    text = "Crafting summary with Gemini Nano...",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
                     }
                 } else {
-                    Text(
-                        text = "Generate an on-device AI travel log highlight using Gemini Nano.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    val story = uiState.aiStory
+                    if (story != null) {
+                        MarkdownText(
+                            markdown = story,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = if (isExpanded) Int.MAX_VALUE else 3,
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                    Button(
-                        onClick = onGenerateClick,
-                        modifier = Modifier.align(Alignment.End)
-                    ) {
-                        Text("Generate Travel Log")
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            FilledTonalButton(
+                                onClick = { isExpanded = !isExpanded }
+                            ) {
+                                Icon(
+                                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                    contentDescription = null
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(if (isExpanded) "Collapse" else "Expand")
+                            }
+
+                            OutlinedButton(
+                                onClick = onGenerateClick,
+                                enabled = !uiState.isStoryGenerating
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Regenerate")
+                            }
+                        }
+                    } else {
+                        Text(
+                            text = "Generate an on-device AI travel log highlight using Gemini Nano.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Button(
+                            onClick = onGenerateClick,
+                            enabled = !uiState.isStoryGenerating,
+                            modifier = Modifier.align(Alignment.End)
+                        ) {
+                            Text("Generate Travel Log")
+                        }
                     }
-                }
 
-                uiState.storyError?.let { err ->
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Error: $err",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
+                    uiState.storyError?.let { err ->
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Error: $err",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                 }
             }
         }

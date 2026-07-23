@@ -73,6 +73,7 @@ class StatsViewModel @Inject constructor(
     private val _selectedYear = MutableStateFlow("All Time")
     private val _isGenerating = MutableStateFlow(false)
     private val _storyError = MutableStateFlow<String?>(null)
+    private val _storyReloadTrigger = MutableStateFlow(0)
 
     private val sharedPrefs: SharedPreferences by lazy {
         PreferenceManager.getDefaultSharedPreferences(application)
@@ -80,8 +81,9 @@ class StatsViewModel @Inject constructor(
 
     private val baseStatsFlow = combine(
         repository.getAllFlightsFlow(),
-        _selectedYear
-    ) { allFlights, selectedYear ->
+        _selectedYear,
+        _storyReloadTrigger
+    ) { allFlights, selectedYear, _ ->
         val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
 
         // Past flights only for stats
@@ -335,6 +337,10 @@ class StatsViewModel @Inject constructor(
         _isGenerating.value = true
         _storyError.value = null
 
+        // Immediately clear saved story from memory & prefs on regenerate to avoid showing stale text
+        sharedPrefs.edit().remove("saved_story_$year").commit()
+        _storyReloadTrigger.value = _storyReloadTrigger.value + 1
+
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 // Setup prompt instructions based on interactive slot preferences
@@ -433,16 +439,14 @@ class StatsViewModel @Inject constructor(
                 val response = responseFuture.await()
                 val generatedStory = response.candidates.firstOrNull()?.text ?: "No summary generated."
                 
-                sharedPrefs.edit().putString("saved_story_$year", generatedStory).apply()
+                sharedPrefs.edit().putString("saved_story_$year", generatedStory).commit()
+                _storyReloadTrigger.value = _storyReloadTrigger.value + 1
                 _isGenerating.value = false
             } catch (e: Exception) {
                 _storyError.value = e.message ?: e.toString()
+                sharedPrefs.edit().remove("saved_story_$year").commit()
+                _storyReloadTrigger.value = _storyReloadTrigger.value + 1
                 _isGenerating.value = false
-                val currentVersion = sharedPrefs.getInt("story_regen_version_$year", 0)
-                sharedPrefs.edit()
-                    .putInt("story_regen_version_$year", currentVersion + 1)
-                    .remove("saved_story_$year")
-                    .apply()
             }
         }
     }
