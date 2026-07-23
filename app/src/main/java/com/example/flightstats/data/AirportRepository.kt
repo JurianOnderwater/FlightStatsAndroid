@@ -5,5 +5,8 @@ package com.example.flightstats.data
  */
 interface AirportRepository {
     /** Returns the ISO 2-letter country code for the given IATA code, or null if unknown. */
-    fun getCountry(iataCode: String): String?
+    suspend fun getCountry(iataCode: String): String?
+
+    /** Returns a map of IATA code to Airport for a given list of IATA codes. */
+    suspend fun getAirportsByIatas(iatas: Collection<String>): Map<String, Airport>
 }

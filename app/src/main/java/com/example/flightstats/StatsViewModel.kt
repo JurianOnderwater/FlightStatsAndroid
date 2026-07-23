@@ -78,12 +78,10 @@ class StatsViewModel @Inject constructor(
         PreferenceManager.getDefaultSharedPreferences(application)
     }
 
-    val uiState: StateFlow<StatsUiState> = combine(
+    private val baseStatsFlow = combine(
         repository.getAllFlightsFlow(),
-        _selectedYear,
-        _isGenerating,
-        _storyError
-    ) { allFlights, selectedYear, isGenerating, storyError ->
+        _selectedYear
+    ) { allFlights, selectedYear ->
         val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
 
         // Past flights only for stats
@@ -110,6 +108,10 @@ class StatsViewModel @Inject constructor(
             pastFlights.filter { it.date != null && it.date.startsWith(selectedYear) }
         }
 
+        // Batch query all required airports in a single SQL call to eliminate N+1 queries
+        val allIatas = filteredFlights.flatMap { listOfNotNull(it.origin, it.destination) }.toSet()
+        val airportMap = repository.getAirportsByIatas(allIatas)
+
         // Compute base stats
         var totalDistanceKm = 0.0
         val airportSet = mutableSetOf<String>()
@@ -135,11 +137,12 @@ class StatsViewModel @Inject constructor(
 
         for (f in filteredFlights) {
             totalDistanceKm += f.distance
-            airportSet.add(f.origin.orEmpty())
-            airportSet.add(f.destination.orEmpty())
-
             val o = f.origin.orEmpty()
             val d = f.destination.orEmpty()
+
+            airportSet.add(o)
+            airportSet.add(d)
+
             airportCounts[o] = (airportCounts[o] ?: 0) + 1
             airportCounts[d] = (airportCounts[d] ?: 0) + 1
 
@@ -153,8 +156,9 @@ class StatsViewModel @Inject constructor(
                 longestFlight = f
             }
 
-            val originAirport = repository.getAirportByIata(o)
-            val destAirport = repository.getAirportByIata(d)
+            // High performance O(1) in-memory airport lookup
+            val originAirport = airportMap[o]
+            val destAirport = airportMap[d]
 
             originAirport?.country?.let {
                 countrySet.add(it)
@@ -166,16 +170,16 @@ class StatsViewModel @Inject constructor(
             }
 
             // Month breakdown
-            f.date?.let { d ->
-                if (d.length >= 7) {
-                    val month = d.substring(5, 7).toIntOrNull()?.minus(1)
+            f.date?.let { dStr ->
+                if (dStr.length >= 7) {
+                    val month = dStr.substring(5, 7).toIntOrNull()?.minus(1)
                     if (month != null && month in 0..11) {
                         byMonth[month]++
                     }
                 }
-                if (d.length >= 10) {
+                if (dStr.length >= 10) {
                     try {
-                        val parsed = sdf.parse(d)
+                        val parsed = sdf.parse(dStr)
                         parsed?.let {
                             val cal = Calendar.getInstance().apply { time = it }
                             val dow = cal.get(Calendar.DAY_OF_WEEK) // 1=Sun...7=Sat
@@ -184,15 +188,15 @@ class StatsViewModel @Inject constructor(
                         }
                     } catch (_: Exception) {}
                 }
-                if (d.length >= 4) {
-                    d.substring(0, 4).toIntOrNull()?.let { year ->
+                if (dStr.length >= 4) {
+                    dStr.substring(0, 4).toIntOrNull()?.let { year ->
                         byYearMap[year] = (byYearMap[year] ?: 0) + 1
                     }
                 }
 
                 // Seasons breakdown
-                if (d.length >= 7) {
-                    val month = d.substring(5, 7).toIntOrNull()?.minus(1)
+                if (dStr.length >= 7) {
+                    val month = dStr.substring(5, 7).toIntOrNull()?.minus(1)
                     if (month != null) {
                         when (month) {
                             Calendar.MARCH, Calendar.APRIL, Calendar.MAY -> springFlights++
@@ -206,15 +210,15 @@ class StatsViewModel @Inject constructor(
         }
 
         // Longest flight airport information
-        val longestFlightOrigin = longestFlight?.let { repository.getAirportByIata(it.origin.orEmpty()) }
-        val longestFlightDest = longestFlight?.let { repository.getAirportByIata(it.destination.orEmpty()) }
+        val longestFlightOrigin = longestFlight?.let { airportMap[it.origin.orEmpty()] }
+        val longestFlightDest = longestFlight?.let { airportMap[it.destination.orEmpty()] }
 
         // Top airports
         val topAirports = airportCounts.entries
             .sortedByDescending { it.value }
             .take(5)
             .map { entry ->
-                val airport = repository.getAirportByIata(entry.key)
+                val airport = airportMap[entry.key]
                 val city = airport?.city ?: entry.key
                 Triple(entry.key, city, entry.value)
             }
@@ -239,14 +243,14 @@ class StatsViewModel @Inject constructor(
             if (i < 5) {
                 val code = sortedCountries[i].key
                 val valFloat = sortedCountries[i].value.toFloat()
-                val pct = String.format(Locale.US, "%.1f%%", (valFloat / pieTotal) * 100f)
+                val pct = if (pieTotal > 0f) String.format(Locale.US, "%.1f%%", (valFloat / pieTotal) * 100f) else "0%"
                 countrySlices.add(CountrySlice(code, valFloat, pct))
             } else {
                 otherCount += sortedCountries[i].value
             }
         }
         if (otherCount > 0f) {
-            val pct = String.format(Locale.US, "%.1f%%", (otherCount / pieTotal) * 100f)
+            val pct = if (pieTotal > 0f) String.format(Locale.US, "%.1f%%", (otherCount / pieTotal) * 100f) else "0%"
             countrySlices.add(CountrySlice("Other", otherCount, pct))
         }
 
@@ -299,12 +303,20 @@ class StatsViewModel @Inject constructor(
             winterFlights = winterFlights,
             countryPercentages = countrySlices,
             cumulativePoints = cumulativePoints,
-            aiStory = aiStory,
+            aiStory = aiStory
+        )
+    }.flowOn(Dispatchers.Default)
+
+    val uiState: StateFlow<StatsUiState> = combine(
+        baseStatsFlow,
+        _isGenerating,
+        _storyError
+    ) { baseState, isGenerating, storyError ->
+        baseState.copy(
             isStoryGenerating = isGenerating,
             storyError = storyError
         )
     }
-        .flowOn(Dispatchers.IO)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),

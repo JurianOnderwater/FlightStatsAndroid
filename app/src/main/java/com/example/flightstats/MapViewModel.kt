@@ -64,12 +64,29 @@ class MapViewModel @Inject constructor(
     private val _selectedAirportIata = MutableStateFlow<String?>(null)
     private val _selectedYear = MutableStateFlow("All Time")
 
-    val uiState: StateFlow<MapUiState> = combine(
+    private data class IntermediateMapState(
+        val selectedYear: String,
+        val availableYears: List<String>,
+        val hometown: String,
+        val userName: String,
+        val userInitial: String,
+        val mapStyle: String,
+        val preferredUnit: String,
+        val isRouteCurved: Boolean,
+        val defaultZoom: Float,
+        val flightsForMap: List<Flight>,
+        val airportSet: Set<String>,
+        val countrySet: Set<String>,
+        val routesList: List<MapRoute>,
+        val centerPoint: GeoPoint,
+        val airportMap: Map<String, Airport>
+    )
+
+    private val baseMapStateFlow = combine(
         repository.getAllFlightsFlow(),
         _prefsTrigger,
-        _selectedAirportIata,
         _selectedYear
-    ) { allFlights, _, selectedIata, selectedYear ->
+    ) { allFlights, _, selectedYear ->
         val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
         val pastFlights = allFlights.filter { it.date != null && it.date < todayStr }
 
@@ -102,30 +119,36 @@ class MapViewModel @Inject constructor(
 
         val userInitial = if (userName.isNotEmpty()) userName.substring(0, 1).uppercase() else "U"
 
+        // Batch query all map airports in a single SQL query
+        val allIatas = flightsForMap.flatMap { listOfNotNull(it.origin, it.destination) }.toSet() + setOf(hometown, "AMS")
+        val airportMap = repository.getAirportsByIatas(allIatas)
+
         val airportSet = mutableSetOf<String>()
         val countrySet = mutableSetOf<String>()
         val routesList = mutableListOf<MapRoute>()
         val routeCache = mutableSetOf<String>()
 
         for (f in flightsForMap) {
-            airportSet.add(f.origin.orEmpty())
-            airportSet.add(f.destination.orEmpty())
+            val o = f.origin.orEmpty()
+            val d = f.destination.orEmpty()
+            airportSet.add(o)
+            airportSet.add(d)
 
-            val originAirport = repository.getAirportByIata(f.origin.orEmpty())
-            val destAirport = repository.getAirportByIata(f.destination.orEmpty())
+            val originAirport = airportMap[o]
+            val destAirport = airportMap[d]
 
             originAirport?.country?.let { countrySet.add(it) }
             destAirport?.country?.let { countrySet.add(it) }
 
             if (originAirport != null && destAirport != null) {
-                val pair = arrayOf(f.origin.orEmpty(), f.destination.orEmpty()).apply { sort() }
+                val pair = arrayOf(o, d).apply { sort() }
                 val routeKey = "${pair[0]}-${pair[1]}"
                 if (!routeCache.contains(routeKey)) {
                     routeCache.add(routeKey)
                     routesList.add(
                         MapRoute(
-                            fromIata = f.origin.orEmpty(),
-                            toIata = f.destination.orEmpty(),
+                            fromIata = o,
+                            toIata = d,
                             fromPoint = GeoPoint(originAirport.lat, originAirport.lng),
                             toPoint = GeoPoint(destAirport.lat, destAirport.lng)
                         )
@@ -134,19 +157,42 @@ class MapViewModel @Inject constructor(
             }
         }
 
-        val hometownAirport = repository.getAirportByIata(hometown)
+        val hometownAirport = airportMap[hometown]
         val centerPoint = if (hometownAirport != null) {
             GeoPoint(hometownAirport.lat, hometownAirport.lng)
         } else {
-            repository.getAirportByIata("AMS")?.let {
+            airportMap["AMS"]?.let {
                 GeoPoint(it.lat, it.lng)
             } ?: GeoPoint(52.3105, 4.7683)
         }
 
+        IntermediateMapState(
+            selectedYear = selectedYear,
+            availableYears = availableYears,
+            hometown = hometown,
+            userName = userName,
+            userInitial = userInitial,
+            mapStyle = mapStyle,
+            preferredUnit = preferredUnit,
+            isRouteCurved = isRouteCurved,
+            defaultZoom = defaultZoom,
+            flightsForMap = flightsForMap,
+            airportSet = airportSet,
+            countrySet = countrySet,
+            routesList = routesList,
+            centerPoint = centerPoint,
+            airportMap = airportMap
+        )
+    }.flowOn(Dispatchers.Default)
+
+    val uiState: StateFlow<MapUiState> = combine(
+        baseMapStateFlow,
+        _selectedAirportIata
+    ) { baseState, selectedIata ->
         val selectedAirportInfo = if (!selectedIata.isNullOrBlank()) {
-            val airport = repository.getAirportByIata(selectedIata)
+            val airport = baseState.airportMap[selectedIata] ?: repository.getAirportByIata(selectedIata)
             if (airport != null) {
-                val airportFlights = flightsForMap.filter {
+                val airportFlights = baseState.flightsForMap.filter {
                     it.origin.equals(selectedIata, ignoreCase = true) ||
                     it.destination.equals(selectedIata, ignoreCase = true)
                 }
@@ -165,25 +211,24 @@ class MapViewModel @Inject constructor(
         } else null
 
         MapUiState(
-            selectedYear = selectedYear,
-            availableYears = availableYears,
-            hometownIata = hometown,
-            userName = userName,
-            userInitial = userInitial,
-            mapStyle = mapStyle,
-            preferredUnit = preferredUnit,
-            isRouteCurved = isRouteCurved,
-            defaultZoom = defaultZoom,
-            totalFlights = flightsForMap.size,
-            totalCountries = countrySet.size,
-            totalAirports = airportSet.size,
-            totalRoutes = routesList.size,
-            routes = routesList,
-            centerPoint = centerPoint,
+            selectedYear = baseState.selectedYear,
+            availableYears = baseState.availableYears,
+            hometownIata = baseState.hometown,
+            userName = baseState.userName,
+            userInitial = baseState.userInitial,
+            mapStyle = baseState.mapStyle,
+            preferredUnit = baseState.preferredUnit,
+            isRouteCurved = baseState.isRouteCurved,
+            defaultZoom = baseState.defaultZoom,
+            totalFlights = baseState.flightsForMap.size,
+            totalCountries = baseState.countrySet.size,
+            totalAirports = baseState.airportSet.size,
+            totalRoutes = baseState.routesList.size,
+            routes = baseState.routesList,
+            centerPoint = baseState.centerPoint,
             selectedAirportInfo = selectedAirportInfo
         )
     }
-        .flowOn(Dispatchers.IO)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),

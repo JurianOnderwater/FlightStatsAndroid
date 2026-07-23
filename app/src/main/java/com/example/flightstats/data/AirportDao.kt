@@ -14,6 +14,9 @@ interface AirportDao {
     @Query("SELECT * FROM airports WHERE iata = :iata LIMIT 1")
     suspend fun getByIata(iata: String): Airport?
 
+    @Query("SELECT * FROM airports WHERE iata IN (:iatas)")
+    suspend fun getByIatas(iatas: Collection<String>): List<Airport>
+
     @Query("SELECT COUNT(*) FROM airports")
     suspend fun count(): Int
 

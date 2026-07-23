@@ -10,7 +10,7 @@ data class StatsCalculator(
     val totalDistanceKm: Double = 0.0
 ) {
     companion object {
-        fun compute(flights: List<Flight>, airports: AirportRepository?): StatsCalculator {
+        fun compute(flights: List<Flight>, airportMap: Map<String, Airport>): StatsCalculator {
             val airportSet = mutableSetOf<String>()
             val routeSet = mutableSetOf<String>()
             val countrySet = mutableSetOf<String>()
@@ -28,10 +28,8 @@ data class StatsCalculator(
                 routeSet.add("${pair[0]}-${pair[1]}")
                 distance += f.distance
 
-                if (airports != null) {
-                    airports.getCountry(o)?.let { countrySet.add(it) }
-                    airports.getCountry(d)?.let { countrySet.add(it) }
-                }
+                airportMap[o]?.country?.let { countrySet.add(it) }
+                airportMap[d]?.country?.let { countrySet.add(it) }
             }
 
             return StatsCalculator(

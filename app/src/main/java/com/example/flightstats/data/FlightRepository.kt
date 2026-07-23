@@ -34,15 +34,12 @@ class FlightRepository @Inject constructor(
 
     suspend fun searchAirports(query: String): List<Airport> = airportDao.search(query)
 
-    override fun getCountry(iataCode: String): String? {
-        // Since getCountry in the original interface is synchronous, but Room is async, 
-        // we can run it blocking or wait. Actually, let's see how getCountry is used in the codebase.
-        // Wait, Room doesn't allow database queries on the main thread.
-        // We'll see how it's used and if we can run it blocking, or if we can make the call reactive.
-        // For now, we can run Blocking or make it return a Flow/suspend if we refactor its usage.
-        // Let's implement it with runBlocking or find out how it's used.
-        return kotlinx.coroutines.runBlocking {
-            airportDao.getByIata(iataCode)?.country
-        }
+    override suspend fun getCountry(iataCode: String): String? {
+        return airportDao.getByIata(iataCode)?.country
+    }
+
+    override suspend fun getAirportsByIatas(iatas: Collection<String>): Map<String, Airport> {
+        if (iatas.isEmpty()) return emptyMap()
+        return airportDao.getByIatas(iatas.distinct()).associateBy { it.iata }
     }
 }
